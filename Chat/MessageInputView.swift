@@ -1,0 +1,75 @@
+import SwiftUI
+
+struct MessageInputView: View {
+    @Binding var message: String
+    var onSend: () -> Void
+    @Binding var isFocused: Bool
+    @FocusState private var isFocusedInternal: Bool
+
+    var body: some View {
+        HStack(alignment: .bottom) {
+            TextField("Message", text: $message, axis: .vertical)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color(UIColor { traitCollection in
+                    traitCollection.userInterfaceStyle == .dark ?
+                        UIColor(red: 50/255, green: 50/255, blue: 50/255, alpha: 1.0) :
+                        UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1.0)
+                }))
+                .cornerRadius(20)
+                .lineLimit(1...5)
+                .focused($isFocusedInternal)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button(action: onSend) {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 30))
+                    .foregroundColor(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color(UIColor { traitCollection in
+                        traitCollection.userInterfaceStyle == .dark ?
+                            UIColor(red: 50/255, green: 50/255, blue: 50/255, alpha: 1.0) :
+                            UIColor(red: 186/255, green: 186/255, blue: 186/255, alpha: 1.0)
+                    }) : Color(red: 61/255, green: 107/255, blue: 171/255))
+                    .symbolEffect(.pulse, options: .repeating)
+            }
+            .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+        .padding(.vertical, 8)
+        .onChange(of: isFocusedInternal) { oldValue, newValue in
+            isFocused = newValue
+        }
+        .onChange(of: isFocused) { oldValue, newValue in
+            if isFocusedInternal != newValue {
+                isFocusedInternal = newValue
+            }
+        }
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 5)
+                .onEnded { value in
+                    let velocity = value.predictedEndLocation.y - value.location.y
+                    if velocity < -50 && !isFocusedInternal {
+                        isFocusedInternal = true
+                    } else if velocity > 50 && isFocusedInternal {
+                        isFocusedInternal = false
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    }
+                }
+        )
+    }
+}
+
+// --- Helper Extensions ---
+extension View {
+    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
+        clipShape(RoundedCorner(radius: radius, corners: corners))
+    }
+}
+
+struct RoundedCorner: Shape {
+    var radius: CGFloat = .infinity
+    var corners: UIRectCorner = .allCorners
+
+    func path(in rect: CGRect) -> Path {
+        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
+        return Path(path.cgPath)
+    }
+}
