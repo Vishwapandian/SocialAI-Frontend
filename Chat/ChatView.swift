@@ -5,7 +5,6 @@ struct ChatView: View {
     @Environment(\.modelContext) private var modelContext
     @ObservedObject var viewModel: ChatViewModel
     @State private var isInputFocused = false
-    @State private var showingKnowledgeDebug = false
     @State private var knowledgeContent = ""
 
     var body: some View {
@@ -129,18 +128,12 @@ struct ChatView: View {
 
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
-                    loadKnowledgeFile()
-                    showingKnowledgeDebug = true
+                    
                 } label: {
                     Image(systemName: "person.crop.circle.fill")
                         .foregroundColor(.primary)
                 }
             }
-        }
-        .alert("Knowledge", isPresented: $showingKnowledgeDebug) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(knowledgeContent.isEmpty ? "Empty or unable to load file" : knowledgeContent)
         }
         .alert(isPresented: .init(
             get: { viewModel.error != nil },
@@ -190,19 +183,6 @@ struct ChatView: View {
             NotificationCenter.default.removeObserver(self)
         }
     }
-
-    private func loadKnowledgeFile() {
-        let fileManager = FileManager.default
-        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let fileURL = documentsDirectory.appendingPathComponent("knowledge.txt")
-
-        do {
-            knowledgeContent = try String(contentsOf: fileURL, encoding: .utf8)
-        } catch {
-            knowledgeContent = "File not found or error loading file: \(error.localizedDescription)"
-        }
-    }
-
 
     private var welcomeView: some View {
         VStack(spacing: 16) {

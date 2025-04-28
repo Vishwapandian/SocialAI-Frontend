@@ -28,8 +28,6 @@ extension ModelContainer {
 struct ChatApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
-    @StateObject private var knowledgeService = KnowledgeUpdateService(modelContext: ModelContext(ModelContainer.empty))
-
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Conversation.self,
@@ -53,7 +51,6 @@ struct ChatApp: App {
             ContentView()
                 .onAppear {
                     UITableView.appearance().backgroundColor = .clear
-                    knowledgeService.updateModelContext(sharedModelContainer.mainContext)
                 }
         }
         .modelContainer(sharedModelContainer)
