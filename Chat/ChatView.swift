@@ -114,15 +114,16 @@ struct ChatView: View {
                 )
             }
         }
-        .navigationTitle(viewModel.currentConversation.title)
+        //.navigationTitle(viewModel.currentConversation.title)
+        .navigationTitle("Puck")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button {
                     // Left toolbar placeholder
                 } label: {
-                    Image(systemName: "flame.fill")
-                        .foregroundColor(.orange)
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.primary)
                 }
             }
 
@@ -131,8 +132,8 @@ struct ChatView: View {
                     loadKnowledgeFile()
                     showingKnowledgeDebug = true
                 } label: {
-                    Image(systemName: "brain.fill")
-                        .foregroundColor(.pink)
+                    Image(systemName: "person.crop.circle.fill")
+                        .foregroundColor(.primary)
                 }
             }
         }
@@ -206,7 +207,7 @@ struct ChatView: View {
     private var welcomeView: some View {
         VStack(spacing: 16) {
             Spacer()
-
+/*
             Image("JournlyIcon")
                 .resizable()
                 .scaledToFit()
@@ -222,6 +223,7 @@ struct ChatView: View {
                 .foregroundColor(.secondary)
 
             Spacer()
+ */
         }
         .padding()
     }
