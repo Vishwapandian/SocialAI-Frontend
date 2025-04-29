@@ -65,7 +65,10 @@ private struct AuthGate: View {
     @EnvironmentObject var auth: AuthViewModel
 
     var body: some View {
-        if auth.user != nil {
+        if auth.isLoading {
+            ProgressView("Loading...")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if auth.user != nil {
             // ✅ already signed in – show the chat UI
             ContentView()
         } else {

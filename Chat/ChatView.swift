@@ -115,7 +115,7 @@ struct ChatView: View {
             }
         }
         //.navigationTitle(viewModel.currentConversation.title)
-        .navigationTitle("Puck")
+        .navigationTitle("Birdie")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
@@ -188,23 +188,23 @@ struct ChatView: View {
     private var welcomeView: some View {
         VStack(spacing: 16) {
             Spacer()
-/*
-            Image("JournlyIcon")
+
+            Image("birdie")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 120, height: 120)
                 .foregroundColor(Color(red: 61/255, green: 107/255, blue: 171/255))
 
-            Text("Journly")
-                .font(.largeTitle)
-                .fontWeight(.bold)
+            //Text("Journly")
+            //    .font(.largeTitle)
+            //    .fontWeight(.bold)
 
-            Text("How was your day?")
+            Text("Tell a little Birdie!")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
 
             Spacer()
- */
+ 
         }
         .padding()
     }

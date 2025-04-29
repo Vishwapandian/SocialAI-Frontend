@@ -13,6 +13,7 @@ final class AuthViewModel: ObservableObject {
     @Published var email: String = ""
     @Published var password: String = ""
     @Published var error: String?
+    @Published var isLoading: Bool = true
 
     private var handle: AuthStateDidChangeListenerHandle?
 
@@ -20,6 +21,7 @@ final class AuthViewModel: ObservableObject {
         // Monitor auth state
         handle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             self?.user = user
+            self?.isLoading = false
         }
     }
 
