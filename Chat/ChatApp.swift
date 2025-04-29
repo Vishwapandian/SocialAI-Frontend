@@ -10,6 +10,9 @@ import SwiftData
 import Combine
 import UserNotifications
 import BackgroundTasks
+import FirebaseCore
+import FirebaseAuth
+import GoogleSignIn
 
 // Extension to provide an empty ModelContainer for initialization
 extension ModelContainer {
@@ -27,6 +30,7 @@ extension ModelContainer {
 @main
 struct ChatApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @StateObject private var authVM = AuthViewModel()
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -48,18 +52,34 @@ struct ChatApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .onAppear {
-                    UITableView.appearance().backgroundColor = .clear
-                }
+            AuthGate()
+                .environmentObject(authVM)
+                .modelContainer(sharedModelContainer)
+                .onAppear { UITableView.appearance().backgroundColor = .clear }
         }
-        .modelContainer(sharedModelContainer)
+    }
+}
+
+/// AuthGate: swap between AuthView and the real app once logged in
+private struct AuthGate: View {
+    @EnvironmentObject var auth: AuthViewModel
+
+    var body: some View {
+        if auth.user != nil {
+            // ✅ already signed in – show the chat UI
+            ContentView()
+        } else {
+            // 🔒 not signed in
+            AuthView()
+        }
     }
 }
 
 // App Delegate to handle notifications
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        // ▶️ 1. Firebase
+        FirebaseApp.configure()
         UNUserNotificationCenter.current().delegate = self
         requestNotificationPermission()
         return true
@@ -73,6 +93,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                 print("Notification permission error: \(error.localizedDescription)")
             }
         }
+    }
+
+    /// Handle the Google Sign-In redirect back into the app
+    func application(_ app: UIApplication,
+                     open url: URL,
+                     options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+        return GIDSignIn.sharedInstance.handle(url)
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {

@@ -6,6 +6,7 @@ struct ChatView: View {
     @ObservedObject var viewModel: ChatViewModel
     @State private var isInputFocused = false
     @State private var knowledgeContent = ""
+    @EnvironmentObject var auth: AuthViewModel
 
     var body: some View {
         ZStack {
@@ -127,8 +128,8 @@ struct ChatView: View {
             }
 
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    
+                Menu {
+                    Button("Sign out", role: .destructive) { auth.signOut() }
                 } label: {
                     Image(systemName: "person.crop.circle.fill")
                         .foregroundColor(.primary)
