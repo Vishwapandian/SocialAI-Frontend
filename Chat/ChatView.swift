@@ -106,7 +106,7 @@ struct ChatView: View {
                             .fill(Color(UIColor { traitCollection in
                                 traitCollection.userInterfaceStyle == .dark
                                     ? UIColor(red: 30/255, green: 30/255, blue: 30/255, alpha: 1.0)
-                                    : UIColor.systemBackground
+                                    : UIColor(red: 255/255, green: 255/255, blue: 255/255, alpha: 1.0)
                             }))
                             .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: -2)
                     }

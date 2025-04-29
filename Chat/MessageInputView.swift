@@ -28,8 +28,7 @@ struct MessageInputView: View {
                         traitCollection.userInterfaceStyle == .dark ?
                             UIColor(red: 50/255, green: 50/255, blue: 50/255, alpha: 1.0) :
                             UIColor(red: 186/255, green: 186/255, blue: 186/255, alpha: 1.0)
-                    }) : Color(red: 61/255, green: 107/255, blue: 171/255))
-                    .symbolEffect(.pulse, options: .repeating)
+                    }) : Color("birdieblue"))
             }
             .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
