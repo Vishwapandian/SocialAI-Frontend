@@ -41,7 +41,7 @@ struct ChatView: View {
                             UIColor(red: 18/255, green: 18/255, blue: 18/255, alpha: 1.0) :
                             UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1.0)
                     }))
-
+                    /*
                     LinearGradient(
                         gradient: Gradient(colors: [
                             Color(UIColor { traitCollection in
@@ -59,6 +59,7 @@ struct ChatView: View {
                         endPoint: .bottom
                     )
                     .frame(height: 15)
+                    */
                 }
                 .onChange(of: viewModel.currentConversation.messages) { _, newMessages in
                     if let lastMessage = newMessages.last {
