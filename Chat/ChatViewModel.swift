@@ -9,16 +9,26 @@ import Foundation
 import SwiftData
 import Combine
 import SwiftUI
+import FirebaseAuth
 
 class ChatViewModel: ObservableObject {
     @Published var currentMessage: String = ""
     @Published var error: String? = nil
     
-    private let geminiService = GeminiService()
+    private let socialAIService = SocialAIService()
     private var cancellables = Set<AnyCancellable>()
     
     private let modelContext: ModelContext
     @Published var currentConversation: Conversation
+    
+    // Inject userId from AuthViewModel if available
+    var userId: String? {
+        // Try to get the userId from Firebase Auth
+        if let user = Auth.auth().currentUser {
+            return user.uid
+        }
+        return nil
+    }
 
     init(modelContext: ModelContext, conversation: Conversation? = nil) {
         self.modelContext = modelContext
@@ -28,6 +38,8 @@ class ChatViewModel: ObservableObject {
         } else {
             self.currentConversation = Self.fetchOrCreateTodayConversation(using: modelContext)
         }
+        // Set userId for the service
+        socialAIService.userId = userId
     }
 
     func sendMessage() {
@@ -41,24 +53,21 @@ class ChatViewModel: ObservableObject {
 
         currentMessage = ""
 
-        geminiService.sendMessage(
-            trimmedMsg,
-            conversationHistory: Array(currentConversation.messages.dropLast())
-        )
-        .receive(on: DispatchQueue.main)
-        .sink { [weak self] completion in
-            guard let self = self else { return }
-            if case .failure(let err) = completion {
-                self.error = err.localizedDescription
+        socialAIService.sendMessage(trimmedMsg)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                guard let self = self else { return }
+                if case .failure(let err) = completion {
+                    self.error = err.localizedDescription
+                }
+            } receiveValue: { [weak self] response in
+                guard let self = self else { return }
+                let aiMessage = Message(content: response, isFromUser: false)
+                self.currentConversation.messages.append(aiMessage)
+                self.currentConversation.updatedAt = Date()
+                try? self.modelContext.save()
             }
-        } receiveValue: { [weak self] response in
-            guard let self = self else { return }
-            let aiMessage = Message(content: response, isFromUser: false)
-            self.currentConversation.messages.append(aiMessage)
-            self.currentConversation.updatedAt = Date()
-            try? self.modelContext.save()
-        }
-        .store(in: &cancellables)
+            .store(in: &cancellables)
     }
 }
 
