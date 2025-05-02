@@ -1,10 +1,3 @@
-//
-//  ChatApp.swift
-//  ChatApp
-//
-//  Created by Vishwa Pandian on 3/29/25.
-//
-
 import SwiftUI
 import SwiftData
 import Combine
@@ -30,8 +23,12 @@ extension ModelContainer {
 @main
 struct ChatApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var authVM = AuthViewModel()
 
+    // ⚠️  Inject the shared SocialAIService so we can end‑chat on background / terminate.
+    @StateObject private var authVM = AuthViewModel()
+    @StateObject private var socialAIService = SocialAIService()
+
+    // CoreData / SwiftData container
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Conversation.self,
@@ -50,12 +47,29 @@ struct ChatApp: App {
         }
     }()
 
+    // Scene‑phase observer (just in case)
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some Scene {
         WindowGroup {
             AuthGate()
                 .environmentObject(authVM)
+                .environmentObject(socialAIService)
                 .modelContainer(sharedModelContainer)
                 .onAppear { UITableView.appearance().backgroundColor = .clear }
+                .onChange(of: scenePhase) { old, newPhase in
+                    switch newPhase {
+                    case .background:
+                        print("[ChatApp] Scene moved to BACKGROUND – sending end‑chat")
+                        socialAIService.endChat()
+                    case .inactive:
+                        print("[ChatApp] Scene became INACTIVE – (no network call)")
+                    case .active:
+                        break
+                    @unknown default:
+                        break
+                    }
+                }
         }
     }
 }
@@ -78,7 +92,7 @@ private struct AuthGate: View {
     }
 }
 
-// App Delegate to handle notifications
+// MARK: - AppDelegate
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         // ▶️ 1. Firebase
@@ -91,20 +105,35 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     private func requestNotificationPermission() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
             if granted {
-                print("Notification permission granted")
+                print("[ChatApp] Notification permission granted")
             } else if let error = error {
-                print("Notification permission error: \(error.localizedDescription)")
+                print("[ChatApp] Notification permission error: \(error.localizedDescription)")
             }
         }
     }
 
-    /// Handle the Google Sign-In redirect back into the app
+    /// Handle the Google Sign‑In redirect back into the app
     func application(_ app: UIApplication,
                      open url: URL,
                      options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
         return GIDSignIn.sharedInstance.handle(url)
     }
 
+    // 🔔 Fire end‑chat when the app is backgrounded (e.g. user swipes up to quit)
+    func applicationDidEnterBackground(_ application: UIApplication) {
+        print("[ChatApp] applicationDidEnterBackground – sending end‑chat")
+        SocialAIService().endChat()
+    }
+
+    // 🔔 Fire end‑chat as a final safety when the app is about to terminate
+    func applicationWillTerminate(_ application: UIApplication) {
+        print("[ChatApp] applicationWillTerminate – sending end‑chat")
+        SocialAIService().endChat()
+    }
+
+    // -------------------------------------------------------------
+    // UNUserNotificationCenterDelegate stubs
+    // -------------------------------------------------------------
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .sound])
     }

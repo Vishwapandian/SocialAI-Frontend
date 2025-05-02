@@ -1,25 +1,43 @@
-//
-//  GeminiService.swift
-//  Jom
-//
-//  Created by Vishwa Pandian on 3/29/25.
-//
-
 import Foundation
 import Combine
+import FirebaseAuth
 
 class SocialAIService: ObservableObject {
-    private let baseURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/chat"
-    @Published private(set) var sessionId: String?
-    
+    private let baseChatURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/chat"
+    private let endChatURL  = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/end-chat"
+
+    // Persist the current session ID across instances using UserDefaults
+    private static var storedSessionId: String? {
+        get { UserDefaults.standard.string(forKey: "SocialAIService.sessionId") }
+        set { UserDefaults.standard.set(newValue, forKey: "SocialAIService.sessionId") }
+    }
+
+    // Published so UI can react if needed. Syncs to the static store.
+    @Published private(set) var sessionId: String? {
+        didSet {
+            print("[SocialAIService] Updated sessionId -> \(sessionId ?? "nil")")
+            SocialAIService.storedSessionId = sessionId
+        }
+    }
+
     // Optionally inject userId if available
     var userId: String? = nil
-    
+
+    // MARK: - Init
+    init() {
+        // Pull any stored session on startup
+        self.sessionId = SocialAIService.storedSessionId
+        print("[SocialAIService] init – recovered sessionId: \(sessionId ?? "nil")")
+    }
+
+    // MARK: - Send Message
     func sendMessage(_ message: String) -> AnyPublisher<String, Error> {
-        var request = URLRequest(url: URL(string: baseURL)!)
+        print("[SocialAIService] sendMessage -> \(message)")
+
+        var request = URLRequest(url: URL(string: baseChatURL)!)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+
         var body: [String: Any] = ["message": message]
         if let sessionId = sessionId {
             body["sessionId"] = sessionId
@@ -28,7 +46,7 @@ class SocialAIService: ObservableObject {
             body["userId"] = userId
         }
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        
+
         return URLSession.shared.dataTaskPublisher(for: request)
             .tryMap { data, response in
                 guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
@@ -43,6 +61,44 @@ class SocialAIService: ObservableObject {
             })
             .map { $0.response }
             .eraseToAnyPublisher()
+    }
+
+    // MARK: - End Chat
+    /// Call this when the app goes to background / quits so the backend can persist memory & analytics.
+    func endChat() {
+        // Resolve latest session & user IDs
+        let currentSession = sessionId ?? SocialAIService.storedSessionId
+        let currentUserId  = userId ?? Auth.auth().currentUser?.uid
+
+        guard let sess = currentSession, let uid = currentUserId else {
+            print("[SocialAIService] endChat – missing sessionId or userId (session: \(String(describing: currentSession)), userId: \(String(describing: currentUserId)))")
+            return
+        }
+
+        print("[SocialAIService] endChat -> sessionId: \(sess), userId: \(uid)")
+
+        var request = URLRequest(url: URL(string: endChatURL)!)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: [
+            "sessionId": sess,
+            "userId": uid
+        ])
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("[SocialAIService] endChat network error: \(error.localizedDescription)")
+                return
+            }
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                print("[SocialAIService] endChat – invalid response object")
+                return
+            }
+
+            let bodyString = data.flatMap { String(data: $0, encoding: .utf8) } ?? "<no body>"
+            print("[SocialAIService] endChat – server status: \(httpResponse.statusCode), body: \(bodyString)")
+        }.resume()
     }
 }
 
