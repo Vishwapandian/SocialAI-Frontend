@@ -12,78 +12,55 @@ struct ChatView: View {
         ZStack {
             Color(UIColor { traitCollection in
                 traitCollection.userInterfaceStyle == .dark
-                    ? UIColor.black
+                    ? UIColor(red: 18/255, green: 18/255, blue: 18/255, alpha: 1.0)
                     : UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1.0)
             })
             .ignoresSafeArea()
 
             ScrollViewReader { proxy in
-                ZStack(alignment: .top) {
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            if viewModel.currentConversation.messages.isEmpty {
-                                welcomeView
-                                    .id("welcomeView")
-                            } else {
-                                ForEach(viewModel.currentConversation.messages.sorted(by: { $0.timestamp < $1.timestamp })) { message in
-                                    MessageBubble(message: message)
-                                        .id(message.id)
-                                }
-                                Spacer()
-                                    .frame(height: 1)
-                                    .id("bottomSpacer")
-                            }
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        if viewModel.currentConversation.messages.isEmpty {
+                            welcomeView
+                                .id("welcomeView")
                         }
-                        .padding(.vertical)
+                        ForEach(viewModel.currentConversation.messages.sorted(by: { $0.timestamp < $1.timestamp })) { message in
+                            MessageBubble(message: message)
+                        }
+                        Spacer()
+                            .frame(height: 1)
+                            .id("bottomSpacer")
                     }
-                    .background(Color(UIColor { traitCollection in
-                        return traitCollection.userInterfaceStyle == .dark ?
-                            UIColor(red: 18/255, green: 18/255, blue: 18/255, alpha: 1.0) :
-                            UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1.0)
-                    }))
-                    /*
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color(UIColor { traitCollection in
-                                return traitCollection.userInterfaceStyle == .dark ?
-                                    UIColor(red: 18/255, green: 18/255, blue: 18/255, alpha: 1.0) :
-                                    UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1.0)
-                            }),
-                            Color(UIColor { traitCollection in
-                                return traitCollection.userInterfaceStyle == .dark ?
-                                    UIColor(red: 18/255, green: 18/255, blue: 18/255, alpha: 0.0) :
-                                    UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 0.0)
-                            })
-                        ]),
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(height: 15)
-                    */
+                    .padding(.vertical)
                 }
-                .onChange(of: viewModel.currentConversation.messages) { _, newMessages in
-                    if let lastMessage = newMessages.last {
-                        withAnimation {
-                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                        }
+                // Let SwiftUI handle moving content above the keyboard
+                .ignoresSafeArea(.keyboard, edges: .bottom)
+                // Whenever new message arrives, scroll to bottom (with a tiny delay)
+                .onChange(of: viewModel.currentConversation.messages) { _ in
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
                     }
                 }
-                .onChange(of: isInputFocused) { _, newValue in
-                    if newValue {
+                // Scroll when keyboard shows
+                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
+                    }
+                }
+                // Scroll when keyboard hides
+                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
+                    }
+                }
+                // Initial scroll on appear
+                .onAppear {
+                    DispatchQueue.main.async {
                         if viewModel.currentConversation.messages.isEmpty {
                             proxy.scrollTo("welcomeView", anchor: .bottom)
                         } else {
-                            withAnimation {
-                                proxy.scrollTo("bottomSpacer", anchor: .bottom)
-                            }
+                            proxy.scrollTo("bottomSpacer", anchor: .bottom)
                         }
-                    }
-                }
-                .onAppear {
-                    if viewModel.currentConversation.messages.isEmpty {
-                        proxy.scrollTo("welcomeView", anchor: .bottom)
-                    } else if let lastMessage = viewModel.currentConversation.messages.last {
-                        proxy.scrollTo(lastMessage.id, anchor: .bottom)
                     }
                 }
             }
@@ -115,7 +92,6 @@ struct ChatView: View {
                 )
             }
         }
-        //.navigationTitle(viewModel.currentConversation.title)
         .navigationTitle("Birdie")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -181,31 +157,21 @@ struct ChatView: View {
                     navigationController.navigationBar.scrollEdgeAppearance = appearance
                 }
             }
-
-            NotificationCenter.default.removeObserver(self)
         }
     }
 
     private var welcomeView: some View {
         VStack(spacing: 16) {
             Spacer()
-
             Image("birdie")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 120, height: 120)
                 .foregroundColor(Color(red: 61/255, green: 107/255, blue: 171/255))
-
-            //Text("Journly")
-            //    .font(.largeTitle)
-            //    .fontWeight(.bold)
-
             Text("Tell a little Birdie!")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
-
             Spacer()
- 
         }
         .padding()
     }
@@ -216,13 +182,12 @@ extension UIViewController {
         if let nav = self as? UINavigationController {
             return nav
         }
-
         for child in children {
             if let nav = child.findNavigationController() {
                 return nav
             }
         }
-
         return nil
     }
 }
+
