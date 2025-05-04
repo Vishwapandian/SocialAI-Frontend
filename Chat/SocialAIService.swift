@@ -65,7 +65,7 @@ class SocialAIService: ObservableObject {
 
     // MARK: - End Chat
     /// Call this when the app goes to background / quits so the backend can persist memory & analytics.
-    func endChat() {
+    func endChat(surveyData: [String: Any]? = nil) {
         // Resolve latest session & user IDs
         let currentSession = sessionId ?? SocialAIService.storedSessionId
         let currentUserId  = userId ?? Auth.auth().currentUser?.uid
@@ -80,10 +80,18 @@ class SocialAIService: ObservableObject {
         var request = URLRequest(url: URL(string: endChatURL)!)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: [
+        
+        var requestBody: [String: Any] = [
             "sessionId": sess,
             "userId": uid
-        ])
+        ]
+        
+        // Include survey data if provided
+        if let surveyData = surveyData {
+            requestBody["surveyData"] = surveyData
+        }
+        
+        request.httpBody = try? JSONSerialization.data(withJSONObject: requestBody)
 
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
@@ -96,8 +104,25 @@ class SocialAIService: ObservableObject {
                 return
             }
 
-            let bodyString = data.flatMap { String(data: $0, encoding: .utf8) } ?? "<no body>"
-            print("[SocialAIService] endChat – server status: \(httpResponse.statusCode), body: \(bodyString)")
+            if let data = data {
+                do {
+                    let responseJSON = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                    let success = responseJSON?["success"] as? Bool ?? false
+                    let memorySaved = responseJSON?["memory_saved"] as? Bool ?? false
+                    let trackingSaved = responseJSON?["tracking_saved"] as? Bool ?? false
+                    
+                    print("[SocialAIService] endChat response – status: \(httpResponse.statusCode), success: \(success), memory_saved: \(memorySaved), tracking_saved: \(trackingSaved)")
+                    
+                    if let updatedMemory = responseJSON?["updated_memory"] {
+                        print("[SocialAIService] endChat updated memory: \(updatedMemory)")
+                    }
+                } catch {
+                    let bodyString = String(data: data, encoding: .utf8) ?? "<no body>"
+                    print("[SocialAIService] endChat – server status: \(httpResponse.statusCode), body: \(bodyString)")
+                }
+            } else {
+                print("[SocialAIService] endChat – server status: \(httpResponse.statusCode), no response data")
+            }
         }.resume()
     }
 }
@@ -106,3 +131,4 @@ struct SocialAIResponse: Decodable {
     let response: String
     let sessionId: String?
 }
+
