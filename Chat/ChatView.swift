@@ -79,6 +79,19 @@ struct ChatView: View {
                     .ignoresSafeArea(edges: .bottom)
                 )
             }
+            .overlay(
+                LinearGradient(
+                    colors: [
+                        Color("birdieBackground"),
+                        Color("birdieBackground").opacity(0)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 25)
+                .allowsHitTesting(false),
+                alignment: .top
+            )
         }
         .navigationTitle("Birdie")
         .navigationBarTitleDisplayMode(.inline)
