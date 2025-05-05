@@ -93,8 +93,6 @@ struct ChatView: View {
                 alignment: .top
             )
         }
-        .navigationTitle("Birdie")
-        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button {
@@ -102,6 +100,15 @@ struct ChatView: View {
                 } label: {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.primary)
+                }
+            }
+            
+            if !viewModel.currentConversation.messages.isEmpty {
+                ToolbarItem(placement: .principal) {
+                    Image("birdie")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 28)
                 }
             }
 
