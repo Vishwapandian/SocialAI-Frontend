@@ -93,6 +93,8 @@ struct ChatView: View {
                 alignment: .top
             )
         }
+        //.navigationTitle("Birdie")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button {
@@ -194,4 +196,3 @@ extension UIViewController {
         return nil
     }
 }
-
