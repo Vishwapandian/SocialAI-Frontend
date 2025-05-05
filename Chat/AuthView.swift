@@ -19,7 +19,7 @@ struct AuthView: View {
                 .padding(.top, 24)
 
             // Title
-            Text(isNewAccount ? "Create Account" : "Welcome Back")
+            Text(isNewAccount ? "Join Birdie" : "Birdie")
                 .font(.largeTitle)
                 .fontWeight(.heavy)
                 .foregroundColor(primaryTextColor)
@@ -69,7 +69,7 @@ struct AuthView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color(.systemGray5))
+                .background(Color("birdieSecondary"))
                 .foregroundColor(primaryTextColor)
                 .cornerRadius(12)
             }
@@ -99,11 +99,7 @@ struct AuthView: View {
             Spacer()
         }
         .padding()
-        .background(Color(UIColor { traitCollection in
-            return traitCollection.userInterfaceStyle == .dark ?
-                UIColor(red: 18/255, green: 18/255, blue: 18/255, alpha: 1.0) :
-                UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1.0)
-        }))
+        .background(Color("birdieBackground"))
         .onTapGesture {
             dismissKeyboard()
         }
@@ -130,7 +126,7 @@ struct AuthView: View {
             if isSecure {
                 SecureField(title, text: text)
                     .padding()
-                    .background(Color.gray.opacity(0.15))
+                    .background(Color.gray.opacity(0.2))
                     .cornerRadius(12)
                     .autocapitalization(.none)
             } else {
@@ -139,7 +135,7 @@ struct AuthView: View {
                     .textContentType(.emailAddress)
                     .autocapitalization(.none)
                     .padding()
-                    .background(Color.gray.opacity(0.15))
+                    .background(Color.gray.opacity(0.2))
                     .cornerRadius(12)
             }
         }
