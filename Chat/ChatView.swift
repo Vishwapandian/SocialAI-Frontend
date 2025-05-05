@@ -10,11 +10,7 @@ struct ChatView: View {
 
     var body: some View {
         ZStack {
-            Color(UIColor { traitCollection in
-                traitCollection.userInterfaceStyle == .dark
-                    ? UIColor(red: 18/255, green: 18/255, blue: 18/255, alpha: 1.0)
-                    : UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1.0)
-            })
+            Color("birdieBackground")
             .ignoresSafeArea()
 
             ScrollViewReader { proxy in
@@ -75,17 +71,9 @@ struct ChatView: View {
                 .padding(.horizontal)
                 .background(
                     ZStack {
-                        Color(UIColor { traitCollection in
-                            traitCollection.userInterfaceStyle == .dark
-                                ? UIColor(red: 18/255, green: 18/255, blue: 18/255, alpha: 1.0)
-                                : UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1.0)
-                        })
+                        Color("birdieBackground")
                         RoundedCorner(radius: 30, corners: [.topLeft, .topRight])
-                            .fill(Color(UIColor { traitCollection in
-                                traitCollection.userInterfaceStyle == .dark
-                                    ? UIColor(red: 30/255, green: 30/255, blue: 30/255, alpha: 1.0)
-                                    : UIColor(red: 255/255, green: 255/255, blue: 255/255, alpha: 1.0)
-                            }))
+                            .fill(Color("birdieSecondary"))
                             .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: -2)
                     }
                     .ignoresSafeArea(edges: .bottom)
@@ -132,11 +120,7 @@ struct ChatView: View {
                     appearance.configureWithDefaultBackground()
                     appearance.shadowColor = .clear
 
-                    appearance.backgroundColor = UIColor { traitCollection in
-                        return traitCollection.userInterfaceStyle == .dark ?
-                            UIColor(red: 18/255, green: 18/255, blue: 18/255, alpha: 1.0) :
-                            UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1.0)
-                    }
+                    appearance.backgroundColor = UIColor(named: "birdieBackground")
 
                     navigationController.navigationBar.standardAppearance = appearance
                     navigationController.navigationBar.compactAppearance = appearance

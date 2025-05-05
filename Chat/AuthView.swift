@@ -115,7 +115,7 @@ struct AuthView: View {
         colorScheme == .dark ? Color.black : Color(.systemGroupedBackground)
     }
 
-    private var primaryButtonColor = Color("birdieblue")
+    private var primaryButtonColor = Color("birdieBlue")
 
     private var primaryTextColor: Color {
         colorScheme == .dark ? Color.white : Color.black

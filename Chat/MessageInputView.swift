@@ -11,11 +11,7 @@ struct MessageInputView: View {
             TextField("Message", text: $message, axis: .vertical)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .background(Color(UIColor { traitCollection in
-                    traitCollection.userInterfaceStyle == .dark ?
-                        UIColor(red: 50/255, green: 50/255, blue: 50/255, alpha: 1.0) :
-                        UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1.0)
-                }))
+                .background(Color.gray.opacity(0.2))  // Translucent gray background
                 .cornerRadius(20)
                 .lineLimit(1...5)
                 .focused($isFocusedInternal)
@@ -24,11 +20,9 @@ struct MessageInputView: View {
             Button(action: onSend) {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 30))
-                    .foregroundColor(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color(UIColor { traitCollection in
-                        traitCollection.userInterfaceStyle == .dark ?
-                            UIColor(red: 50/255, green: 50/255, blue: 50/255, alpha: 1.0) :
-                            UIColor(red: 186/255, green: 186/255, blue: 186/255, alpha: 1.0)
-                    }) : Color("birdieblue"))
+                    .foregroundColor(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?
+                        Color.gray.opacity(0.4) :  // Translucent gray for disabled state
+                        Color("birdieBlue"))       // Original active color
             }
             .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }

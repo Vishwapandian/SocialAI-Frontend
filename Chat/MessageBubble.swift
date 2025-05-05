@@ -20,14 +20,11 @@ struct MessageBubble: View {
                 Text(message.content)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
-                    .background(message.isFromUser ? Color("birdieblue") : Color(UIColor { traitCollection in
-                        return traitCollection.userInterfaceStyle == .dark ?
-                            UIColor(Color(red: 18/255, green: 18/255, blue: 18/255)) :
-                            UIColor(Color(red: 240/255, green: 240/255, blue: 240/255))
-                    }))
+                    .background(message.isFromUser ? Color("birdieBlue") : Color("birdieBackground"))
                     .foregroundColor(message.isFromUser ? .white : .primary)
                     .cornerRadius(16)
                     .textSelection(.enabled)
+
                 if message.isFromUser {
                     Text(timeString(from: message.timestamp))
                         .font(.caption2)
