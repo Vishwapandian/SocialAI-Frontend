@@ -7,6 +7,7 @@ struct ChatView: View {
     @State private var isInputFocused = false
     @State private var knowledgeContent = ""
     @EnvironmentObject var auth: AuthViewModel
+    @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         ZStack {
@@ -79,19 +80,6 @@ struct ChatView: View {
                     .ignoresSafeArea(edges: .bottom)
                 )
             }
-            .overlay(
-                LinearGradient(
-                    colors: [
-                        Color("birdieBackground"),
-                        Color("birdieBackground").opacity(0)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 25)
-                .allowsHitTesting(false),
-                alignment: .top
-            )
         }
         //.navigationTitle("Birdie")
         .navigationBarTitleDisplayMode(.inline)
@@ -134,34 +122,35 @@ struct ChatView: View {
             )
         }
         .onAppear {
-            DispatchQueue.main.async {
-                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                   let window = windowScene.windows.first,
-                   let navigationController = window.rootViewController?.findNavigationController() {
-                    let appearance = UINavigationBarAppearance()
-                    appearance.configureWithDefaultBackground()
-                    appearance.shadowColor = .clear
-
-                    appearance.backgroundColor = UIColor(named: "birdieBackground")
-
-                    navigationController.navigationBar.standardAppearance = appearance
-                    navigationController.navigationBar.compactAppearance = appearance
-                    navigationController.navigationBar.scrollEdgeAppearance = appearance
-                }
-            }
+            setupNavigationBarAppearance()
         }
-        .onDisappear {
-            DispatchQueue.main.async {
-                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                   let window = windowScene.windows.first,
-                   let navigationController = window.rootViewController?.findNavigationController() {
-                    let appearance = UINavigationBarAppearance()
-                    appearance.configureWithDefaultBackground()
+        .onChange(of: colorScheme) { _ in
+            setupNavigationBarAppearance()
+        }
+    }
 
-                    navigationController.navigationBar.standardAppearance = appearance
-                    navigationController.navigationBar.compactAppearance = appearance
-                    navigationController.navigationBar.scrollEdgeAppearance = appearance
-                }
+    private func setupNavigationBarAppearance() {
+        DispatchQueue.main.async {
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let window = windowScene.windows.first,
+               let navigationController = window.rootViewController?.findNavigationController() {
+                // Configure navigation bar appearance
+                let appearance = UINavigationBarAppearance()
+                appearance.configureWithDefaultBackground()
+                appearance.shadowColor = .clear
+                appearance.backgroundColor = UIColor(named: "birdieBackground")
+                
+                navigationController.navigationBar.standardAppearance = appearance
+                navigationController.navigationBar.compactAppearance = appearance
+                navigationController.navigationBar.scrollEdgeAppearance = appearance
+                
+                // Update shadow color dynamically
+                navigationController.navigationBar.layer.shadowColor = UIColor(named: "birdieBackground")?.cgColor
+                navigationController.navigationBar.layer.shadowOffset = CGSize(width: 0, height: 20)
+                navigationController.navigationBar.layer.shadowRadius = 8
+                navigationController.navigationBar.layer.shadowOpacity = 1
+                // Ensure the shadow is visible even if content scrolls behind nav bar
+                navigationController.navigationBar.layer.masksToBounds = false
             }
         }
     }
