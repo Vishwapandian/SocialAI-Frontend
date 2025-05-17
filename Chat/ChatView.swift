@@ -9,10 +9,28 @@ struct ChatView: View {
     @EnvironmentObject var auth: AuthViewModel
     @Environment(\.colorScheme) var colorScheme
 
+    // State variables for the gradient
+    @State private var gradientColors: [Color] = ChatView.generateRandomColors()
+    @State private var animateGradient = false
+
+    // The main colors for the aura
+    static let auraColors: [Color] = [.yellow, .blue, .purple, .green, .red]
+
+    // Timer to change the colors periodically
+    let timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
+
     var body: some View {
         ZStack {
-            Color("birdieBackground")
-            .ignoresSafeArea()
+            // The fluctuating aura background
+            RadialGradient(
+                gradient: Gradient(colors: gradientColors),
+                center: .center,
+                startRadius: 50,
+                endRadius: 500 // Adjust for desired spread
+            )
+            .blur(radius: 60) // Soften the edges for an aura effect
+            .animation(.easeInOut(duration: 2), value: animateGradient) // Animate color changes
+            .ignoresSafeArea() // Make the background fill the entire screen
 
             ScrollViewReader { proxy in
                 ScrollView {
@@ -72,9 +90,11 @@ struct ChatView: View {
                 .padding(.horizontal)
                 .background(
                     ZStack {
-                        Color("birdieBackground")
+                        //Color("birdieBackground") // Old background
+                        // Make input background transparent to show gradient
+                        Color.clear 
                         RoundedCorner(radius: 30, corners: [.topLeft, .topRight])
-                            .fill(Color("birdieSecondary"))
+                            .fill(Color("birdieSecondary").opacity(0.5))
                             .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: -2)
                     }
                     .ignoresSafeArea(edges: .bottom)
@@ -123,9 +143,16 @@ struct ChatView: View {
         }
         .onAppear {
             setupNavigationBarAppearance()
+            // Initial animation trigger
+            self.animateGradient.toggle()
         }
         .onChange(of: colorScheme) { _ in
             setupNavigationBarAppearance()
+        }
+        .onReceive(timer) { _ in
+            // Trigger a new set of random colors and the animation
+            self.gradientColors = Self.generateRandomColors()
+            self.animateGradient.toggle()
         }
     }
 
@@ -136,20 +163,19 @@ struct ChatView: View {
                let navigationController = window.rootViewController?.findNavigationController() {
                 // Configure navigation bar appearance
                 let appearance = UINavigationBarAppearance()
-                appearance.configureWithDefaultBackground()
+                appearance.configureWithTransparentBackground()
                 appearance.shadowColor = .clear
-                appearance.backgroundColor = UIColor(named: "birdieBackground")
+                appearance.backgroundColor = .clear
                 
                 navigationController.navigationBar.standardAppearance = appearance
                 navigationController.navigationBar.compactAppearance = appearance
                 navigationController.navigationBar.scrollEdgeAppearance = appearance
                 
                 // Update shadow color dynamically
-                navigationController.navigationBar.layer.shadowColor = UIColor(named: "birdieBackground")?.cgColor
+                navigationController.navigationBar.layer.shadowColor = UIColor.clear.cgColor
                 navigationController.navigationBar.layer.shadowOffset = CGSize(width: 0, height: 20)
                 navigationController.navigationBar.layer.shadowRadius = 8
                 navigationController.navigationBar.layer.shadowOpacity = 1
-                // Ensure the shadow is visible even if content scrolls behind nav bar
                 navigationController.navigationBar.layer.masksToBounds = false
             }
         }
@@ -157,16 +183,20 @@ struct ChatView: View {
 
     private var welcomeView: some View {
         VStack(spacing: 16) {
+            /*
             Spacer()
             Image("birdie")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 120, height: 120)
-                .foregroundColor(Color(red: 61/255, green: 107/255, blue: 171/255))
+                //.foregroundColor(Color(red: 61/255, green: 107/255, blue: 171/255)) // Keep or make adaptable
+                .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .black.opacity(0.7)) // Adapting to gradient
             Text("Tell a little Birdie!")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                //.foregroundColor(.secondary) // Keep or make adaptable
+                .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6)) // Adapting to gradient
             Spacer()
+            */
         }
         .padding()
     }
@@ -183,5 +213,32 @@ extension UIViewController {
             }
         }
         return nil
+    }
+}
+
+// Add the color generation function
+extension ChatView {
+    static func generateRandomColors() -> [Color] {
+        // Shuffle the main aura colors
+        var shuffledColors = auraColors.shuffled()
+        // Take a random number of colors (at least 2 for a gradient)
+        let numberOfColors = Int.random(in: 2...shuffledColors.count)
+        // Ensure we have distinct colors for the start and end of the base gradient
+        // and add more random colors in between if needed.
+        var colorsToShow = Array(shuffledColors.prefix(numberOfColors))
+
+        // To make the gradient more dynamic, sometimes we might want to repeat colors
+        // or ensure the start and end points are different.
+        // For simplicity, we're just taking a random slice.
+        // You can add more sophisticated logic here for color combinations.
+
+        // Ensure there are at least two colors for a gradient
+        if colorsToShow.count < 2 {
+            colorsToShow.append(auraColors.randomElement() ?? .clear) // Fallback color
+            if colorsToShow.count < 2 { // If still less than 2 (e.g. auraColors was empty or had 1 element)
+                 colorsToShow.append(auraColors.randomElement() ?? .black) // Another fallback
+            }
+        }
+        return colorsToShow
     }
 }
