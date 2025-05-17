@@ -6,33 +6,28 @@
 //
 
 import SwiftUI
-
 struct MessageBubble: View {
     let message: Message
-    
     var body: some View {
         HStack {
             if message.isFromUser {
                 Spacer()
             }
-            
             VStack(alignment: message.isFromUser ? .trailing : .leading, spacing: 4) {
                 Text(message.content)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
-                    .background(message.isFromUser ? Color("birdieBlue") : Color("birdieBackground"))
-                    .foregroundColor(message.isFromUser ? .white : .primary)
+                    .background(message.isFromUser ? Color("birdieSecondary").opacity(0.5) : Color("birdieSecondary").opacity(0.5))
+                    .foregroundColor(.primary)
                     .cornerRadius(16)
                     .textSelection(.enabled)
-
                 if message.isFromUser {
                     Text(timeString(from: message.timestamp))
                         .font(.caption2)
-                        .foregroundColor(.gray)
+                        .foregroundColor(Color("birdieSecondary").opacity(0.5))
                         .padding(.horizontal, 8)
                 }
             }
-            
             if !message.isFromUser {
                 Spacer()
             }
@@ -40,7 +35,6 @@ struct MessageBubble: View {
         .padding(.horizontal)
         .padding(.vertical, 4)
     }
-    
     private func timeString(from date: Date) -> String {
         let formatter = DateFormatter()
         formatter.timeStyle = .short

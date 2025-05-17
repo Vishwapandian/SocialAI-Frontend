@@ -110,10 +110,12 @@ struct ChatView: View {
                     // Left toolbar placeholder
                 } label: {
                     Image(systemName: "magnifyingglass")
-                        .foregroundColor(.primary)
+                        .foregroundColor(Color("birdieSecondary"))
+                        .fontWeight(.bold)
                 }
             }
             
+            /*
             if !viewModel.currentConversation.messages.isEmpty {
                 ToolbarItem(placement: .principal) {
                     Image("birdie")
@@ -122,13 +124,15 @@ struct ChatView: View {
                         .frame(height: 28)
                 }
             }
-
+            */
+            
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     Button("Sign out", role: .destructive) { auth.signOut() }
                 } label: {
                     Image(systemName: "person.crop.circle.fill")
-                        .foregroundColor(.primary)
+                        .foregroundColor(Color("birdieSecondary"))
+                        .fontWeight(.bold)
                 }
             }
         }
@@ -171,6 +175,7 @@ struct ChatView: View {
 
     private var welcomeView: some View {
         VStack(spacing: 16) {
+            /*
             Spacer()
             Image("birdie")
                 .resizable()
@@ -180,6 +185,7 @@ struct ChatView: View {
                 .font(.subheadline)
                 .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
             Spacer()
+             */
         }
         .padding()
     }
