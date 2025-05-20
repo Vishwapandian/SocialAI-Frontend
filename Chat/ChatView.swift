@@ -107,7 +107,7 @@ struct ChatView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button {
-                    // Left toolbar placeholder
+                    viewModel.requestEmotionDisplay()
                 } label: {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(Color("birdieSecondary"))
@@ -145,6 +145,18 @@ struct ChatView: View {
                 message: Text(viewModel.error ?? "Unknown error"),
                 dismissButton: .default(Text("OK"))
             )
+        }
+        .alert("AI Emotional State", isPresented: .init(
+            get: { viewModel.emotionDisplayContent != nil },
+            set: { if !$0 { viewModel.emotionDisplayContent = nil } }
+        )) {
+            Button("OK") {
+                viewModel.emotionDisplayContent = nil
+            }
+        } message: {
+            if let content = viewModel.emotionDisplayContent {
+                Text(content)
+            }
         }
         .onAppear {
             setupNavigationBarAppearance()

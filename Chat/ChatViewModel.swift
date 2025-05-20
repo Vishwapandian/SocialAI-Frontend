@@ -14,6 +14,8 @@ import FirebaseAuth
 class ChatViewModel: ObservableObject {
     @Published var currentMessage: String = ""
     @Published var error: String? = nil
+    @Published var latestEmotions: [String: Int]? = nil // To store the latest emotions
+    @Published var emotionDisplayContent: String? = nil // For the alert
     
     private let socialAIService = SocialAIService()
     private var cancellables = Set<AnyCancellable>()
@@ -40,6 +42,8 @@ class ChatViewModel: ObservableObject {
         }
         // Set userId for the service
         socialAIService.userId = userId
+        // Initialize latestEmotions from persisted storage if needed, or ensure it's nil
+        // For now, we'll rely on it being populated by messages.
     }
 
     func sendMessage() {
@@ -62,12 +66,22 @@ class ChatViewModel: ObservableObject {
                 }
             } receiveValue: { [weak self] response in
                 guard let self = self else { return }
-                let aiMessage = Message(content: response, isFromUser: false)
+                let aiMessage = Message(content: response.response, isFromUser: false) // Use response.response
                 self.currentConversation.messages.append(aiMessage)
                 self.currentConversation.updatedAt = Date()
+                self.latestEmotions = response.emotions // Store emotions
                 try? self.modelContext.save()
             }
             .store(in: &cancellables)
+    }
+
+    func requestEmotionDisplay() {
+        if let emotions = latestEmotions, !emotions.isEmpty {
+            let emotionStrings = emotions.map { "\($0.key): \($0.value)" }
+            emotionDisplayContent = "Current AI Emotions:\\n" + emotionStrings.joined(separator: "\\n")
+        } else {
+            emotionDisplayContent = "No emotional data available yet. Send a message to see the AI's emotional state."
+        }
     }
 }
 

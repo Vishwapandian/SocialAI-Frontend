@@ -31,7 +31,7 @@ class SocialAIService: ObservableObject {
     }
 
     // MARK: - Send Message
-    func sendMessage(_ message: String) -> AnyPublisher<String, Error> {
+    func sendMessage(_ message: String) -> AnyPublisher<SocialAIResponse, Error> {
         print("[SocialAIService] sendMessage -> \(message)")
 
         var request = URLRequest(url: URL(string: baseChatURL)!)
@@ -59,7 +59,7 @@ class SocialAIService: ObservableObject {
             .handleEvents(receiveOutput: { [weak self] response in
                 self?.sessionId = response.sessionId
             })
-            .map { $0.response }
+            .map { $0 }
             .eraseToAnyPublisher()
     }
 
@@ -130,5 +130,6 @@ class SocialAIService: ObservableObject {
 struct SocialAIResponse: Decodable {
     let response: String
     let sessionId: String?
+    let emotions: [String: Int]?
 }
 
