@@ -1,8 +1,6 @@
 import SwiftUI
-import SwiftData
 
 struct ChatView: View {
-    @Environment(\.modelContext) private var modelContext
     @ObservedObject var viewModel: ChatViewModel
     @State private var isInputFocused = false
     @EnvironmentObject var auth: AuthViewModel
@@ -27,88 +25,8 @@ struct ChatView: View {
 
     var body: some View {
         ZStack {
-            // The fluctuating aura background
-            RadialGradient(
-                gradient: Gradient(stops: gradientStops),
-                center: .center,
-                startRadius: 50,
-                endRadius: 500 // Adjust for desired spread
-            )
-            .blur(radius: 60) // Soften the edges for an aura effect
-            .animation(.easeInOut(duration: 5), value: animateGradient) // Animate color changes
-            .ignoresSafeArea() // Make the background fill the entire screen
-
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        if viewModel.currentConversation.messages.isEmpty {
-                            welcomeView
-                                .id("welcomeView")
-                        }
-                        ForEach(viewModel.currentConversation.messages.sorted(by: { $0.timestamp < $1.timestamp })) { message in
-                            MessageBubble(message: message)
-                        }
-                        Spacer()
-                            .frame(height: 1)
-                            .id("bottomSpacer")
-                    }
-                    .padding(.vertical)
-                }
-                .mask(
-                    LinearGradient(
-                        gradient: Gradient(stops: [
-                            .init(color: .clear, location: 0),
-                            .init(color: .black, location: 0.05)
-                        ]),
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .ignoresSafeArea(.keyboard, edges: .bottom)
-                .onChange(of: viewModel.currentConversation.messages) { _ in
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
-                    }
-                }
-                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
-                    }
-                }
-                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
-                    }
-                }
-                .onAppear {
-                    DispatchQueue.main.async {
-                        if viewModel.currentConversation.messages.isEmpty {
-                            proxy.scrollTo("welcomeView", anchor: .bottom)
-                        } else {
-                            proxy.scrollTo("bottomSpacer", anchor: .bottom)
-                        }
-                    }
-                }
-            }
-            .safeAreaInset(edge: .bottom) {
-                MessageInputView(
-                    message: $viewModel.currentMessage,
-                    onSend: {
-                        viewModel.sendMessage()
-                    },
-                    isFocused: $isInputFocused
-                )
-                .padding(.horizontal)
-                .background(
-                    ZStack {
-                        Color.clear
-                        RoundedCorner(radius: 30, corners: [.topLeft, .topRight])
-                            .fill(Color("birdieSecondary").opacity(0.5))
-                            .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: -2)
-                    }
-                    .ignoresSafeArea(edges: .bottom)
-                )
-            }
+            auraBackground
+            chatList
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -167,13 +85,12 @@ struct ChatView: View {
         }
         .onAppear {
             setupNavigationBarAppearance()
-            // Set initial colors based on current emotions
             updateGradientStops(from: viewModel.latestEmotions)
-            self.animateGradient.toggle() // Initial animation
+            animateGradient.toggle()
         }
         .onChange(of: viewModel.latestEmotions) { newEmotions in
             updateGradientStops(from: newEmotions)
-            self.animateGradient.toggle() // Trigger animation on emotion change
+            animateGradient.toggle()
         }
     }
 
@@ -209,6 +126,94 @@ struct ChatView: View {
              */
         }
         .padding()
+    }
+
+    // Extracted aura background view
+    private var auraBackground: some View {
+        RadialGradient(
+            gradient: Gradient(stops: gradientStops),
+            center: .center,
+            startRadius: 50,
+            endRadius: 500
+        )
+        .blur(radius: 60)
+        .animation(.easeInOut(duration: 5), value: animateGradient)
+        .ignoresSafeArea()
+    }
+
+    // Extracted chat list view
+    private var chatList: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    if viewModel.messages.isEmpty {
+                        welcomeView
+                            .id("welcomeView")
+                    }
+                    ForEach(viewModel.messages.sorted(by: { $0.timestamp < $1.timestamp })) { message in
+                        MessageBubble(message: message)
+                    }
+                    Spacer()
+                        .frame(height: 1)
+                        .id("bottomSpacer")
+                }
+                .padding(.vertical)
+            }
+            .mask(
+                LinearGradient(
+                    gradient: Gradient(stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: .black, location: 0.05)
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .ignoresSafeArea(.keyboard, edges: .bottom)
+            .onChange(of: viewModel.messages) { _ in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
+                }
+            }
+            .onAppear {
+                DispatchQueue.main.async {
+                    if viewModel.messages.isEmpty {
+                        proxy.scrollTo("welcomeView", anchor: .bottom)
+                    } else {
+                        proxy.scrollTo("bottomSpacer", anchor: .bottom)
+                    }
+                }
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            MessageInputView(
+                message: $viewModel.currentMessage,
+                onSend: {
+                    viewModel.sendMessage()
+                },
+                isFocused: $isInputFocused
+            )
+            .padding(.horizontal)
+            .background(
+                ZStack {
+                    Color.clear
+                    RoundedCorner(radius: 30, corners: [.topLeft, .topRight])
+                        .fill(Color("birdieSecondary").opacity(0.5))
+                        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: -2)
+                }
+                .ignoresSafeArea(edges: .bottom)
+            )
+        }
     }
 }
 

@@ -6,10 +6,10 @@
 //
 
 import Foundation
-import SwiftData
 
-@Model
-final class Message {
+/// A simple in-memory chat message model
+struct Message: Identifiable, Equatable {
+    let id = UUID()
     var content: String
     var timestamp: Date
     var isFromUser: Bool

@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import SwiftData
 import Combine
 import SwiftUI
 import FirebaseAuth
@@ -16,12 +15,10 @@ class ChatViewModel: ObservableObject {
     @Published var error: String? = nil
     @Published var latestEmotions: [String: Int]? = nil // To store the latest emotions
     @Published var emotionDisplayContent: String? = nil // For the alert
+    @Published var messages: [Message] = []
     
     private let socialAIService = SocialAIService()
     private var cancellables = Set<AnyCancellable>()
-    
-    private let modelContext: ModelContext
-    @Published var currentConversation: Conversation
     
     // Inject userId from AuthViewModel if available
     var userId: String? {
@@ -32,19 +29,12 @@ class ChatViewModel: ObservableObject {
         return nil
     }
 
-    init(modelContext: ModelContext, conversation: Conversation? = nil) {
-        self.modelContext = modelContext
-        
-        if let conversation = conversation {
-            self.currentConversation = conversation
-        } else {
-            self.currentConversation = Self.fetchOrCreateTodayConversation(using: modelContext)
-        }
+    init() {
         // Set userId for the service
         socialAIService.userId = userId
-        // Initialize latestEmotions from persisted storage if needed, or ensure it's nil
-        // For now, we'll rely on it being populated by messages.
-        fetchInitialEmotionsData() // Call to fetch initial emotions
+        // Initialize an empty chat
+        self.messages = []
+        fetchInitialEmotionsData() // Fetch emotions from backend
     }
 
     func sendMessage() {
@@ -52,9 +42,7 @@ class ChatViewModel: ObservableObject {
         guard !trimmedMsg.isEmpty else { return }
 
         let userMessage = Message(content: trimmedMsg, isFromUser: true)
-        currentConversation.messages.append(userMessage)
-        currentConversation.updatedAt = Date()
-        try? modelContext.save()
+        messages.append(userMessage)
 
         currentMessage = ""
 
@@ -67,11 +55,9 @@ class ChatViewModel: ObservableObject {
                 }
             } receiveValue: { [weak self] response in
                 guard let self = self else { return }
-                let aiMessage = Message(content: response.response, isFromUser: false) // Use response.response
-                self.currentConversation.messages.append(aiMessage)
-                self.currentConversation.updatedAt = Date()
+                let aiMessage = Message(content: response.response, isFromUser: false)
+                self.messages.append(aiMessage)
                 self.latestEmotions = response.emotions // Store emotions
-                try? self.modelContext.save()
             }
             .store(in: &cancellables)
     }
@@ -109,49 +95,5 @@ class ChatViewModel: ObservableObject {
                 // self?.requestEmotionDisplay() 
             }
             .store(in: &cancellables)
-    }
-}
-
-// MARK: - Helpers
-extension ChatViewModel {
-    static func fetchOrCreateTodayConversation(using context: ModelContext) -> Conversation {
-        let calendar = Calendar.current
-        let now = Date()
-        guard
-            let startOfDay = calendar.date(bySettingHour: 0, minute: 0, second: 0, of: now),
-            let endOfDay = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: now)
-        else {
-            fatalError("Could not calculate start or end of day")
-        }
-
-        let fetchDescriptor = FetchDescriptor<Conversation>(
-            predicate: #Predicate<Conversation> {
-                $0.createdAt >= startOfDay && $0.createdAt <= endOfDay
-            }
-        )
-
-        do {
-            let conversations = try context.fetch(fetchDescriptor)
-            if let existing = conversations.first {
-                return existing
-            }
-
-            let newConversation = Conversation(
-                title: "Chat",
-                createdAt: startOfDay,
-                updatedAt: startOfDay
-            )
-            context.insert(newConversation)
-            return newConversation
-        } catch {
-            print("Failed to fetch or create conversation for today: \(error)")
-            let fallbackConversation = Conversation(
-                title: "Chat",
-                createdAt: startOfDay,
-                updatedAt: startOfDay
-            )
-            context.insert(fallbackConversation)
-            return fallbackConversation
-        }
     }
 }

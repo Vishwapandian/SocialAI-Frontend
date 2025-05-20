@@ -1,24 +1,10 @@
 import SwiftUI
-import SwiftData
 import Combine
 import UserNotifications
 import BackgroundTasks
 import FirebaseCore
 import FirebaseAuth
 import GoogleSignIn
-
-// Extension to provide an empty ModelContainer for initialization
-extension ModelContainer {
-    static var empty: ModelContainer {
-        do {
-            let schema = Schema([])
-            let config = ModelConfiguration(isStoredInMemoryOnly: true)
-            return try ModelContainer(for: schema, configurations: [config])
-        } catch {
-            fatalError("Could not create empty ModelContainer: \(error)")
-        }
-    }
-}
 
 @main
 struct ChatApp: App {
@@ -28,25 +14,6 @@ struct ChatApp: App {
     @StateObject private var authVM = AuthViewModel()
     @StateObject private var socialAIService = SocialAIService()
 
-    // CoreData / SwiftData container
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Conversation.self,
-            Message.self,
-        ])
-        let modelConfiguration = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: false,
-            allowsSave: true
-        )
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
-
     // Scene‑phase observer (just in case)
     @Environment(\.scenePhase) private var scenePhase
 
@@ -55,7 +22,6 @@ struct ChatApp: App {
             AuthGate()
                 .environmentObject(authVM)
                 .environmentObject(socialAIService)
-                .modelContainer(sharedModelContainer)
                 .onAppear { UITableView.appearance().backgroundColor = .clear }
                 .onChange(of: scenePhase) { old, newPhase in
                     switch newPhase {
