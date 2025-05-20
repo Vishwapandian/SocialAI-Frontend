@@ -9,20 +9,27 @@ struct ChatView: View {
     @Environment(\.colorScheme) var colorScheme
 
     // State variables for the gradient
-    @State private var gradientColors: [Color] = ChatView.generateRandomColors()
+    @State private var gradientStops: [Gradient.Stop] = [
+        Gradient.Stop(color: Self.defaultAuraColor, location: 0),
+        Gradient.Stop(color: Self.defaultAuraColor, location: 1)
+    ]
     @State private var animateGradient = false
 
-    // The main colors for the aura
-    static let auraColors: [Color] = [.yellow, .blue, .purple, .green, .red]
-
-    // Timer to change the colors periodically
-    let timer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
+    // New: Emotion to Color Mapping and default color
+    static let emotionColorMapping: [String: Color] = [
+        "Joy": .yellow,
+        "Sadness": .blue,
+        "Anger": .red,
+        "Fear": .purple,
+        "Disgust": .green
+    ]
+    static let defaultAuraColor: Color = Color.gray.opacity(0.3)
 
     var body: some View {
         ZStack {
             // The fluctuating aura background
             RadialGradient(
-                gradient: Gradient(colors: gradientColors),
+                gradient: Gradient(stops: gradientStops),
                 center: .center,
                 startRadius: 50,
                 endRadius: 500 // Adjust for desired spread
@@ -160,11 +167,13 @@ struct ChatView: View {
         }
         .onAppear {
             setupNavigationBarAppearance()
-            self.animateGradient.toggle()
+            // Set initial colors based on current emotions
+            updateGradientStops(from: viewModel.latestEmotions)
+            self.animateGradient.toggle() // Initial animation
         }
-        .onReceive(timer) { _ in
-            self.gradientColors = Self.generateRandomColors()
-            self.animateGradient.toggle()
+        .onChange(of: viewModel.latestEmotions) { newEmotions in
+            updateGradientStops(from: newEmotions)
+            self.animateGradient.toggle() // Trigger animation on emotion change
         }
     }
 
@@ -217,17 +226,94 @@ extension UIViewController {
     }
 }
 
+// Updated private function to update gradient stops based on emotion magnitudes
 extension ChatView {
-    static func generateRandomColors() -> [Color] {
-        var shuffledColors = auraColors.shuffled()
-        let numberOfColors = Int.random(in: 2...shuffledColors.count)
-        var colorsToShow = Array(shuffledColors.prefix(numberOfColors))
-        if colorsToShow.count < 2 {
-            colorsToShow.append(auraColors.randomElement() ?? .clear)
-            if colorsToShow.count < 2 {
-                colorsToShow.append(auraColors.randomElement() ?? .black)
-            }
+    private func updateGradientStops(from emotions: [String: Int]?) {
+        guard let emotions = emotions, !emotions.isEmpty else {
+            self.gradientStops = [
+                Gradient.Stop(color: Self.defaultAuraColor, location: 0),
+                Gradient.Stop(color: Self.defaultAuraColor, location: 1)
+            ]
+            return
         }
-        return colorsToShow
+
+        let activeSortedEmotions = emotions
+            .filter { $0.value > 0 }
+            .sorted { $0.value < $1.value } // Smallest intensity first
+
+        if activeSortedEmotions.isEmpty {
+            self.gradientStops = [
+                Gradient.Stop(color: Self.defaultAuraColor, location: 0),
+                Gradient.Stop(color: Self.defaultAuraColor, location: 1)
+            ]
+            return
+        }
+
+        if activeSortedEmotions.count == 1 {
+            let emotion = activeSortedEmotions[0]
+            let color = Self.emotionColorMapping[emotion.key] ?? Self.defaultAuraColor
+            self.gradientStops = [
+                Gradient.Stop(color: color, location: 0),
+                Gradient.Stop(color: color, location: 1)
+            ]
+            return
+        }
+
+        let totalIntensity = CGFloat(activeSortedEmotions.reduce(0) { $0 + $1.value })
+        guard totalIntensity > 0 else {
+            self.gradientStops = [
+                Gradient.Stop(color: Self.defaultAuraColor, location: 0),
+                Gradient.Stop(color: Self.defaultAuraColor, location: 1)
+            ]
+            return
+        }
+
+        var newStops: [Gradient.Stop] = []
+        var cumulativeProportion: CGFloat = 0.0
+
+        for i in 0..<activeSortedEmotions.count {
+            let emotionEntry = activeSortedEmotions[i]
+            let color = Self.emotionColorMapping[emotionEntry.key] ?? Self.defaultAuraColor
+            
+            if i == 0 {
+                // First emotion's color starts at location 0.0
+                newStops.append(Gradient.Stop(color: color, location: 0.0))
+            }
+            
+            let intensity = CGFloat(emotionEntry.value)
+            cumulativeProportion += intensity / totalIntensity
+            let locationForThisColorSegmentEnd = min(cumulativeProportion, 1.0) // Cap at 1.0
+            
+            // Add a stop for the current emotion's color at the end of its proportional segment.
+            // This structure [Stop(C1,0), Stop(C1,L1), Stop(C2,L2), Stop(C3,L3=1)] creates:
+            // Solid C1 from 0-L1, then gradient C1->C2 from L1-L2, then C2->C3 from L2-L3.
+            newStops.append(Gradient.Stop(color: color, location: locationForThisColorSegmentEnd))
+        }
+
+        // Cleanup: Remove truly duplicate consecutive stops (same color and same location).
+        // This can happen if an intensity is extremely small leading to no change in location after min().
+        if newStops.count > 1 {
+            var uniqueStops: [Gradient.Stop] = [newStops[0]]
+            for j in 1..<newStops.count {
+                let lastAddedStop = uniqueStops.last!
+                let currentStopToConsider = newStops[j]
+                if !(currentStopToConsider.color == lastAddedStop.color && currentStopToConsider.location == lastAddedStop.location) {
+                    uniqueStops.append(currentStopToConsider)
+                }
+            }
+            newStops = uniqueStops
+        }
+        
+        // Ensure gradient is valid (at least two stops). This should be guaranteed by count == 1 case,
+        // but as a safeguard if newStops somehow ends up with one.
+        if newStops.count == 1, let firstStop = newStops.first {
+             newStops.append(Gradient.Stop(color: firstStop.color, location: 1.0))
+        }
+
+
+        self.gradientStops = newStops.isEmpty ? [ // Final safeguard
+            Gradient.Stop(color: Self.defaultAuraColor, location: 0),
+            Gradient.Stop(color: Self.defaultAuraColor, location: 1)
+        ] : newStops
     }
 }
