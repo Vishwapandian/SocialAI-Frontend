@@ -55,7 +55,7 @@ class ChatViewModel: ObservableObject {
                 }
             } receiveValue: { [weak self] response in
                 guard let self = self else { return }
-                let aiMessage = Message(content: response.response, isFromUser: false)
+                let aiMessage = Message(content: response.response.trimmingCharacters(in: .whitespacesAndNewlines), isFromUser: false)
                 self.messages.append(aiMessage)
                 self.latestEmotions = response.emotions // Store emotions
             }
