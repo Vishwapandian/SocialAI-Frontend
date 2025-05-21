@@ -3,6 +3,7 @@ import SwiftUI
 struct ChatView: View {
     @ObservedObject var viewModel: ChatViewModel
     @State private var isInputFocused = false
+    @State private var showingSheet = false
     @EnvironmentObject var auth: AuthViewModel
     @Environment(\.colorScheme) var colorScheme
 
@@ -27,6 +28,26 @@ struct ChatView: View {
         ZStack {
             auraBackground
             chatList
+            VStack {
+                HStack {
+                    Button(action: {
+                        showingSheet.toggle()
+                    }) {
+                        Image(systemName: "heart.circle.fill")
+                            .resizable()
+                            .frame(width: 30, height: 30)
+                            .foregroundColor(Color("birdieSecondary"))
+                            .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
+                            .padding()
+                    }
+                    Spacer()
+                }
+                Spacer()
+            }
+        }
+        .sheet(isPresented: $showingSheet) {
+            SheetView(viewModel: viewModel)
+                .environmentObject(auth)
         }
         .alert(isPresented: .init(
             get: { viewModel.error != nil },
@@ -62,7 +83,7 @@ struct ChatView: View {
 
     private var welcomeView: some View {
         VStack(spacing: 16) {
-            /*
+            ///*
             Spacer()
             Image("birdie")
                 .resizable()
@@ -72,7 +93,7 @@ struct ChatView: View {
                 .font(.subheadline)
                 .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
             Spacer()
-            */
+            //*/
         }
         .padding()
     }
@@ -106,13 +127,14 @@ struct ChatView: View {
                         .frame(height: 1)
                         .id("bottomSpacer")
                 }
+                .padding(.top, 40)
                 .padding(.vertical)
             }
             .mask(
                 LinearGradient(
                     gradient: Gradient(stops: [
                         .init(color: .clear, location: 0),
-                        .init(color: .black, location: 0.03)
+                        .init(color: .black, location: 0.1)
                     ]),
                     startPoint: .top,
                     endPoint: .bottom
