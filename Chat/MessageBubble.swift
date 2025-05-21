@@ -21,12 +21,6 @@ struct MessageBubble: View {
                     .foregroundColor(.primary)
                     .cornerRadius(16)
                     .textSelection(.enabled)
-                if message.isFromUser {
-                    Text(timeString(from: message.timestamp))
-                        .font(.caption2)
-                        .foregroundColor(Color("birdieSecondary").opacity(0.5))
-                        .padding(.horizontal, 8)
-                }
             }
             if !message.isFromUser {
                 Spacer()
