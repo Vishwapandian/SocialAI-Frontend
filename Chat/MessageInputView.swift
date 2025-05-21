@@ -22,7 +22,7 @@ struct MessageInputView: View {
                     .font(.system(size: 30))
                     .foregroundColor(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?
                         Color.gray.opacity(0.4) :  // Translucent gray for disabled state
-                        Color("birdieSecondary"))       // Original active color
+                        Color.white.opacity(0.8))       // Original active color
             }
             .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }

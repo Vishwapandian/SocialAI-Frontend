@@ -35,8 +35,9 @@ struct ChatView: View {
                     }) {
                         Image(systemName: "heart.circle.fill")
                             .resizable()
+                            .symbolRenderingMode(.palette)
                             .frame(width: 30, height: 30)
-                            .foregroundColor(Color("birdieSecondary"))
+                            .foregroundStyle(.white.opacity(0.8), .ultraThinMaterial)
                             .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                             .padding()
                     }
@@ -83,7 +84,7 @@ struct ChatView: View {
 
     private var welcomeView: some View {
         VStack(spacing: 16) {
-            ///*
+            /*
             Spacer()
             Image("birdie")
                 .resizable()
@@ -93,7 +94,7 @@ struct ChatView: View {
                 .font(.subheadline)
                 .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
             Spacer()
-            //*/
+            */
         }
         .padding()
     }

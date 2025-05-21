@@ -13,7 +13,7 @@ struct SheetView: View {
                         Button {
                             viewModel.requestEmotionDisplay()
                         } label: {
-                            Image(systemName: "magnifyingglass")
+                            Image(systemName: "brain.fill")
                                 .foregroundColor(.secondary)
                                 .fontWeight(.bold)
                         }
