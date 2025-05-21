@@ -28,39 +28,6 @@ struct ChatView: View {
             auraBackground
             chatList
         }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button {
-                    viewModel.requestEmotionDisplay()
-                } label: {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(Color("birdieSecondary"))
-                        .fontWeight(.bold)
-                }
-            }
-            
-            /*
-            if !viewModel.currentConversation.messages.isEmpty {
-                ToolbarItem(placement: .principal) {
-                    Image("birdie")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 28)
-                }
-            }
-            */
-            
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Menu {
-                    Button("Sign out", role: .destructive) { auth.signOut() }
-                } label: {
-                    Image(systemName: "person.crop.circle.fill")
-                        .foregroundColor(Color("birdieSecondary"))
-                        .fontWeight(.bold)
-                }
-            }
-        }
         .alert(isPresented: .init(
             get: { viewModel.error != nil },
             set: { if !$0 { viewModel.error = nil } }
@@ -84,30 +51,12 @@ struct ChatView: View {
             }
         }
         .onAppear {
-            setupNavigationBarAppearance()
             updateGradientStops(from: viewModel.latestEmotions)
             animateGradient.toggle()
         }
         .onChange(of: viewModel.latestEmotions) { newEmotions in
             updateGradientStops(from: newEmotions)
             animateGradient.toggle()
-        }
-    }
-
-    private func setupNavigationBarAppearance() {
-        DispatchQueue.main.async {
-            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let window = windowScene.windows.first,
-               let navigationController = window.rootViewController?.findNavigationController() {
-                let appearance = UINavigationBarAppearance()
-                appearance.configureWithTransparentBackground()
-                appearance.shadowColor = .clear
-                appearance.backgroundColor = .clear
-                
-                navigationController.navigationBar.standardAppearance = appearance
-                navigationController.navigationBar.compactAppearance = appearance
-                navigationController.navigationBar.scrollEdgeAppearance = appearance
-            }
         }
     }
 
@@ -123,7 +72,7 @@ struct ChatView: View {
                 .font(.subheadline)
                 .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
             Spacer()
-             */
+            */
         }
         .padding()
     }
@@ -163,7 +112,7 @@ struct ChatView: View {
                 LinearGradient(
                     gradient: Gradient(stops: [
                         .init(color: .clear, location: 0),
-                        .init(color: .black, location: 0.05)
+                        .init(color: .black, location: 0.03)
                     ]),
                     startPoint: .top,
                     endPoint: .bottom
@@ -214,20 +163,6 @@ struct ChatView: View {
                 .ignoresSafeArea(edges: .bottom)
             )
         }
-    }
-}
-
-extension UIViewController {
-    func findNavigationController() -> UINavigationController? {
-        if let nav = self as? UINavigationController {
-            return nav
-        }
-        for child in children {
-            if let nav = child.findNavigationController() {
-                return nav
-            }
-        }
-        return nil
     }
 }
 
