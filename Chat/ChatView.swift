@@ -244,7 +244,7 @@ extension ChatView {
 
         let activeSortedEmotions = emotions
             .filter { $0.value >= 15 }
-            .sorted { $0.value < $1.value }
+            .sorted { $0.value > $1.value }
 
         if activeSortedEmotions.isEmpty {
             self.gradientStops = [
