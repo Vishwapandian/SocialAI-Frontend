@@ -17,10 +17,11 @@ struct MessageBubble: View {
                 Text(message.content)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
-                    .background(message.isFromUser ? Color("birdieSecondary").opacity(0.5) : Color("birdieSecondary").opacity(0.5))
+                    .background(.ultraThinMaterial)
                     .foregroundColor(.primary)
                     .cornerRadius(16)
                     .textSelection(.enabled)
+                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
             }
             if !message.isFromUser {
                 Spacer()

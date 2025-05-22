@@ -180,7 +180,8 @@ struct ChatView: View {
                 ZStack {
                     Color.clear
                     RoundedCorner(radius: 30, corners: [.topLeft, .topRight])
-                        .fill(Color("birdieSecondary").opacity(0.5))
+                        //.fill(Color("birdieSecondary").opacity(0.5))
+                        .foregroundStyle(.ultraThinMaterial)
                         .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: -2)
                 }
                 .ignoresSafeArea(edges: .bottom)
@@ -201,7 +202,7 @@ extension ChatView {
         }
 
         let activeSortedEmotions = emotions
-            .filter { $0.value >= 15 }
+            //.filter { $0.value >= 15 }
             .sorted { $0.value > $1.value }
 
         if activeSortedEmotions.isEmpty {
