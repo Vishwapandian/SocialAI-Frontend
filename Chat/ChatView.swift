@@ -3,7 +3,7 @@ import SwiftUI
 struct ChatView: View {
     @ObservedObject var viewModel: ChatViewModel
     @State private var isInputFocused = false
-    @State private var showingSheet = false
+    @State private var showingResetConfirmation = false
     @EnvironmentObject var auth: AuthViewModel
     @Environment(\.colorScheme) var colorScheme
 
@@ -30,10 +30,22 @@ struct ChatView: View {
             chatList
             VStack {
                 HStack {
-                    Button(action: {
-                        showingSheet.toggle()
-                    }) {
-                        Image(systemName: "heart.circle.fill")
+                    Menu {
+                        /*
+                        Button("Get Emotional State") {
+                            viewModel.requestEmotionDisplay()
+                        }
+                        */
+                        
+                        Button("Reset Puck", role: .destructive) {
+                            showingResetConfirmation = true
+                        }
+                        
+                        Button("Sign Out", role: .destructive) {
+                            auth.signOut()
+                        }
+                    } label: {
+                        Image(systemName: "line.3.horizontal.circle.fill")
                             .resizable()
                             .symbolRenderingMode(.palette)
                             .frame(width: 30, height: 30)
@@ -45,10 +57,6 @@ struct ChatView: View {
                 }
                 Spacer()
             }
-        }
-        .sheet(isPresented: $showingSheet) {
-            SheetView(viewModel: viewModel)
-                .environmentObject(auth)
         }
         .alert(isPresented: .init(
             get: { viewModel.error != nil },
@@ -71,6 +79,14 @@ struct ChatView: View {
             if let content = viewModel.emotionDisplayContent {
                 Text(content)
             }
+        }
+        .alert("Reset Puck", isPresented: $showingResetConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Reset", role: .destructive) {
+                viewModel.resetMemoryAndChat()
+            }
+        } message: {
+            Text("Are you sure you want to reset all data? This will restore the Puck’s memory to factory settings and cannot be undone.")
         }
         .onAppear {
             updateGradientStops(from: viewModel.latestEmotions)
