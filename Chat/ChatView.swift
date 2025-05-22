@@ -84,7 +84,7 @@ struct ChatView: View {
 
     private var welcomeView: some View {
         VStack(spacing: 16) {
-            /*
+            ///*
             Spacer()
             Image("birdie")
                 .resizable()
@@ -94,7 +94,7 @@ struct ChatView: View {
                 .font(.subheadline)
                 .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
             Spacer()
-            */
+            //*/
         }
         .padding()
     }
@@ -128,8 +128,8 @@ struct ChatView: View {
                         .frame(height: 1)
                         .id("bottomSpacer")
                 }
+                .padding(.top, 40)
             }
-            // Removed mask that was creating a border effect
             .ignoresSafeArea(.keyboard, edges: .bottom)
             .onChange(of: viewModel.messages) { _ in
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
@@ -169,6 +169,8 @@ struct ChatView: View {
                 ZStack {
                     RoundedCorner(radius: 30, corners: [.topLeft, .topRight])
                         .foregroundStyle(.ultraThinMaterial)
+                        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
+
                 }
                 .ignoresSafeArea(edges: .bottom)
             )
