@@ -71,6 +71,41 @@ class ChatViewModel: ObservableObject {
         }
     }
 
+    func resetMemoryAndChat() {
+        guard let currentUserId = self.userId else {
+            self.error = "Cannot reset: User not identified."
+            return
+        }
+        
+        // Call the reset API
+        socialAIService.resetUserData(userId: currentUserId)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                guard let self = self else { return }
+                if case .failure(let err) = completion {
+                    self.error = "Failed to reset memory: \(err.localizedDescription)"
+                }
+            } receiveValue: { [weak self] resetResponse in
+                guard let self = self else { return }
+                
+                if resetResponse.success {
+                    // Clear local state to simulate app restart
+                    self.messages = []
+                    self.latestEmotions = nil
+                    self.currentMessage = ""
+                    self.emotionDisplayContent = nil
+                    
+                    print("[ChatViewModel] Reset successful - cleared local state")
+                    
+                    // Fetch fresh emotions (should be empty/default after reset)
+                    self.fetchInitialEmotionsData()
+                } else {
+                    self.error = "Reset failed: \(resetResponse.message)"
+                }
+            }
+            .store(in: &cancellables)
+    }
+
     private func fetchInitialEmotionsData() {
         guard let currentUserId = self.userId else {
             print("[ChatViewModel] Cannot fetch initial emotions: userId is nil.")

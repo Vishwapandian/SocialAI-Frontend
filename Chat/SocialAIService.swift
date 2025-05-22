@@ -6,6 +6,7 @@ class SocialAIService: ObservableObject {
     private let baseChatURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/chat"
     private let endChatURL  = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/end-chat"
     private let emotionsURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/emotions"
+    private let resetURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/reset"
 
     // Persist the current session ID across instances using UserDefaults
     private static var storedSessionId: String? {
@@ -154,6 +155,48 @@ class SocialAIService: ObservableObject {
             }
         }.resume()
     }
+
+    // MARK: - Reset User Data
+    /// Resets both emotions and memory for a user
+    func resetUserData(userId: String) -> AnyPublisher<ResetResponse, Error> {
+        print("[SocialAIService] resetUserData for userId -> \(userId)")
+
+        guard let url = URL(string: resetURL) else {
+            return Fail(error: NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid reset URL"])).eraseToAnyPublisher()
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: Any] = ["userId": userId]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .tryMap { data, response in
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error resetting data"
+                    throw NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+                }
+                
+                if httpResponse.statusCode == 200 {
+                    return data
+                } else {
+                    let errorMessage = String(data: data, encoding: .utf8) ?? "Failed to reset user data"
+                    print("[SocialAIService] resetUserData error: \(errorMessage), code: \(httpResponse.statusCode)")
+                    throw NSError(domain: "SocialAIService", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+                }
+            }
+            .decode(type: ResetResponse.self, decoder: JSONDecoder())
+            .handleEvents(receiveOutput: { [weak self] response in
+                if response.success {
+                    // Clear the stored session ID since we're starting fresh
+                    self?.sessionId = nil
+                    print("[SocialAIService] Reset successful - cleared sessionId")
+                }
+            })
+            .eraseToAnyPublisher()
+    }
 }
 
 struct SocialAIResponse: Decodable {
@@ -165,6 +208,15 @@ struct SocialAIResponse: Decodable {
 // Struct for /api/emotions endpoint response
 struct EmotionDataResponse: Decodable {
     let emotions: [String: Int]
+    let userId: String
+}
+
+// Struct for /api/reset endpoint response
+struct ResetResponse: Decodable {
+    let success: Bool
+    let message: String
+    let emotions_deleted: Bool
+    let memory_deleted: Bool
     let userId: String
 }
 
