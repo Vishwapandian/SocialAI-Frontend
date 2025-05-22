@@ -89,7 +89,7 @@ struct ChatView: View {
             Image("birdie")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 120, height: 120)
+                .frame(width: 500, height: 500)
             Text("Tell a little Birdie!")
                 .font(.subheadline)
                 .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
@@ -128,19 +128,8 @@ struct ChatView: View {
                         .frame(height: 1)
                         .id("bottomSpacer")
                 }
-                .padding(.top, 40)
-                .padding(.vertical)
             }
-            .mask(
-                LinearGradient(
-                    gradient: Gradient(stops: [
-                        .init(color: .clear, location: 0),
-                        .init(color: .black, location: 0.1)
-                    ]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
+            // Removed mask that was creating a border effect
             .ignoresSafeArea(.keyboard, edges: .bottom)
             .onChange(of: viewModel.messages) { _ in
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
@@ -178,11 +167,8 @@ struct ChatView: View {
             .padding(.horizontal)
             .background(
                 ZStack {
-                    Color.clear
                     RoundedCorner(radius: 30, corners: [.topLeft, .topRight])
-                        //.fill(Color("birdieSecondary").opacity(0.5))
                         .foregroundStyle(.ultraThinMaterial)
-                        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: -2)
                 }
                 .ignoresSafeArea(edges: .bottom)
             )
