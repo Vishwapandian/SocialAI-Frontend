@@ -84,7 +84,7 @@ struct ChatView: View {
 
     private var welcomeView: some View {
         VStack(spacing: 16) {
-            ///*
+            /*
             Spacer()
             Image("birdie")
                 .resizable()
@@ -94,7 +94,7 @@ struct ChatView: View {
                 .font(.subheadline)
                 .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
             Spacer()
-            //*/
+            */
         }
         .padding()
     }
@@ -128,7 +128,7 @@ struct ChatView: View {
                         .frame(height: 1)
                         .id("bottomSpacer")
                 }
-                .padding(.top, 40)
+                .padding(.top, 60)
             }
             .ignoresSafeArea(.keyboard, edges: .bottom)
             .onChange(of: viewModel.messages) { _ in
@@ -175,6 +175,17 @@ struct ChatView: View {
                 .ignoresSafeArea(edges: .bottom)
             )
         }
+         .mask(
+                LinearGradient(
+                    gradient: Gradient(stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: .black, location: 0.1)
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea(.container, edges: .bottom)
+            )
     }
 }
 

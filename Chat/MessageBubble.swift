@@ -28,7 +28,7 @@ struct MessageBubble: View {
             }
         }
         .padding(.horizontal)
-        .padding(.vertical, 4)
+        .padding(.vertical, 10)
     }
     private func timeString(from date: Date) -> String {
         let formatter = DateFormatter()
