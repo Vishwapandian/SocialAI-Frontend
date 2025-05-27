@@ -37,12 +37,14 @@ struct MessageInputView: View {
             }
         }
         .simultaneousGesture(
-            DragGesture(minimumDistance: 5)
+            DragGesture(minimumDistance: 10)
                 .onEnded { value in
-                    let velocity = value.predictedEndLocation.y - value.location.y
-                    if velocity < -50 && !isFocusedInternal {
+                    let dx = value.predictedEndLocation.x - value.location.x
+                    let dy = value.predictedEndLocation.y - value.location.y
+                    guard abs(dy) > abs(dx) else { return }  // only vertical swipes
+                    if dy < -100 && !isFocusedInternal {
                         isFocusedInternal = true
-                    } else if velocity > 50 && isFocusedInternal {
+                    } else if dy > 100 && isFocusedInternal {
                         isFocusedInternal = false
                         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                     }

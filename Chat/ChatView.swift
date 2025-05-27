@@ -31,11 +31,11 @@ struct ChatView: View {
             VStack {
                 HStack {
                     Menu {
-                        /*
+                        ///*
                         Button("Get Emotional State") {
                             viewModel.requestEmotionDisplay()
                         }
-                        */
+                        //*/
                         
                         Button("Reset Puck", role: .destructive) {
                             showingResetConfirmation = true
@@ -57,6 +57,10 @@ struct ChatView: View {
                 }
                 Spacer()
             }
+        }
+        .onTapGesture {
+            // Dismiss keyboard/input focus when tapping background
+            isInputFocused = false
         }
         .alert(isPresented: .init(
             get: { viewModel.error != nil },
@@ -86,7 +90,7 @@ struct ChatView: View {
                 viewModel.resetMemoryAndChat()
             }
         } message: {
-            Text("Are you sure you want to reset all data? This will restore the Puck’s memory to factory settings and cannot be undone.")
+            Text("Are you sure you want to reset all data? This will restore the Puck's memory to factory settings and cannot be undone.")
         }
         .onAppear {
             updateGradientStops(from: viewModel.latestEmotions)
