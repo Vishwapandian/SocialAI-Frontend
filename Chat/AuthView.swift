@@ -46,7 +46,7 @@ struct AuthView: View {
 
                 // Title
                 /*
-                Text(isNewAccount ? "Join Puck" : "Puck")
+                Text(isNewAccount ? "Join EV-0" : "EV-0")
                     .font(.largeTitle)
                     //.fontWeight(.heavy)
                     .foregroundColor(.primary)

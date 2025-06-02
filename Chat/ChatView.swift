@@ -16,11 +16,11 @@ struct ChatView: View {
 
     // New: Emotion to Color Mapping and default color
     static let emotionColorMapping: [String: Color] = [
-        "Joy": .yellow,
-        "Sadness": .blue,
-        "Anger": .red,
-        "Fear": .purple,
-        "Disgust": .green
+        "Yellow": .yellow,
+        "Blue": .blue,
+        "Red": .red,
+        "Purple": .purple,
+        "Green": .green
     ]
     static let defaultAuraColor: Color = Color.gray.opacity(0.3)
 
@@ -31,13 +31,13 @@ struct ChatView: View {
             VStack {
                 HStack {
                     Menu {
-                        ///*
+                        /*
                         Button("Get Emotional State") {
                             viewModel.requestEmotionDisplay()
                         }
-                        //*/
+                        */
                         
-                        Button("Reset Puck", role: .destructive) {
+                        Button("Reset EV-0", role: .destructive) {
                             showingResetConfirmation = true
                         }
                         
@@ -84,13 +84,13 @@ struct ChatView: View {
                 Text(content)
             }
         }
-        .alert("Reset Puck", isPresented: $showingResetConfirmation) {
+        .alert("Reset EV-0", isPresented: $showingResetConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button("Reset", role: .destructive) {
                 viewModel.resetMemoryAndChat()
             }
         } message: {
-            Text("Are you sure you want to reset all data? This will restore the Puck's memory to factory settings and cannot be undone.")
+            Text("Are you sure you want to reset all data? This will restore the EV-0's memory to factory settings and cannot be undone.")
         }
         .onAppear {
             updateGradientStops(from: viewModel.latestEmotions)

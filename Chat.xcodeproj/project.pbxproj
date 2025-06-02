@@ -14,7 +14,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		E0758ED82DA7A5C700AE32D2 /* Chat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Chat.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E0D6A6D62DECDCDD00BB2236 /* Chat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Chat.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -57,16 +57,8 @@
 			isa = PBXGroup;
 			children = (
 				E0758EDA2DA7A5C700AE32D2 /* Chat */,
-				E0758ED92DA7A5C700AE32D2 /* Products */,
+				E0D6A6D62DECDCDD00BB2236 /* Chat.app */,
 			);
-			sourceTree = "<group>";
-		};
-		E0758ED92DA7A5C700AE32D2 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				E0758ED82DA7A5C700AE32D2 /* Chat.app */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -95,7 +87,7 @@
 				E05DADA62DC036DC000FC188 /* GoogleSignInSwift */,
 			);
 			productName = Chat;
-			productReference = E0758ED82DA7A5C700AE32D2 /* Chat.app */;
+			productReference = E0D6A6D62DECDCDD00BB2236 /* Chat.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -127,7 +119,7 @@
 				E05DADA32DC036DC000FC188 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = E0758ED92DA7A5C700AE32D2 /* Products */;
+			productRefGroup = E0758ECF2DA7A5C700AE32D2;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -288,7 +280,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Chat/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Birdie;
+				INFOPLIST_KEY_CFBundleDisplayName = "EV-0";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -320,7 +312,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Chat/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Birdie;
+				INFOPLIST_KEY_CFBundleDisplayName = "EV-0";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
