@@ -33,6 +33,10 @@ class ChatViewModel: ObservableObject {
     private var timerStartTime: Date?
     private var totalDelayDuration: TimeInterval = 0
     
+    // Idle detection system
+    private var idleTimer: Timer?
+    private var isIdleTimerActive: Bool = false
+    
     // Inject userId from AuthViewModel if available
     var userId: String? {
         // Try to get the userId from Firebase Auth
@@ -63,6 +67,22 @@ class ChatViewModel: ObservableObject {
         
         // Clear the current message input
         currentMessage = ""
+        
+        // Start idle detection since input is now empty
+        startIdleTimer()
+    }
+    
+    // New function to handle when the input text changes
+    func onMessageInputChanged() {
+        if currentMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            // Input is empty, start idle timer if we have pending messages
+            if isInputDelayActive && !pendingUserMessage.isEmpty {
+                startIdleTimer()
+            }
+        } else {
+            // User is typing, stop idle timer
+            stopIdleTimer()
+        }
     }
     
     private func handleInputWithDelay(_ message: String) {
@@ -154,6 +174,7 @@ class ChatViewModel: ObservableObject {
         isInputDelayActive = false
         timerStartTime = nil
         totalDelayDuration = 0
+        stopIdleTimer()
     }
     
     private func processAIResponse(_ response: String) {
@@ -288,14 +309,28 @@ class ChatViewModel: ObservableObject {
         resetInputDelay()
     }
 
-    func sendBatchedMessageImmediately() {
-        guard isInputDelayActive && !pendingUserMessage.isEmpty else { return }
+    private func startIdleTimer() {
+        // Only start idle timer if we have pending messages and no idle timer is running
+        guard isInputDelayActive && !pendingUserMessage.isEmpty && !isIdleTimerActive else { return }
         
-        // Cancel the existing timer and start a 2-second delay
-        inputDelayTimer?.invalidate()
-        
-        inputDelayTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
-            self?.sendBatchedMessage()
+        isIdleTimerActive = true
+        idleTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
+            self?.handleIdleTimeout()
         }
+    }
+    
+    private func stopIdleTimer() {
+        idleTimer?.invalidate()
+        idleTimer = nil
+        isIdleTimerActive = false
+    }
+    
+    private func handleIdleTimeout() {
+        // User has been idle for 5 seconds, send the batched message immediately
+        stopIdleTimer()
+        
+        // Cancel the main delay timer and send immediately
+        inputDelayTimer?.invalidate()
+        sendBatchedMessage()
     }
 }

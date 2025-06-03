@@ -3,6 +3,7 @@ import SwiftUI
 struct MessageInputView: View {
     @Binding var message: String
     var onSend: () -> Void
+    var onMessageChanged: (() -> Void)? = nil
     @Binding var isFocused: Bool
     @FocusState private var isFocusedInternal: Bool
 
@@ -16,6 +17,9 @@ struct MessageInputView: View {
                 .lineLimit(1...5)
                 .focused($isFocusedInternal)
                 .fixedSize(horizontal: false, vertical: true)
+                .onChange(of: message) { oldValue, newValue in
+                    onMessageChanged?()
+                }
 
             Button(action: onSend) {
                 Image(systemName: "arrow.up.circle.fill")
