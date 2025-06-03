@@ -70,7 +70,7 @@ class ChatViewModel: ObservableObject {
         let additionalDelayInSeconds = Double(characterCount * 1) // 1 second per character
         
         if isInputDelayActive {
-            // Timer is already running, calculate remaining time and add new delay
+            // Timer is already running, calculate remaining time and use max with new delay
             guard let startTime = timerStartTime else {
                 // Fallback if start time is somehow nil
                 pendingUserMessage = message
@@ -94,8 +94,8 @@ class ChatViewModel: ObservableObject {
             // Cancel existing timer
             inputDelayTimer?.invalidate()
             
-            // Calculate new total duration (remaining time + additional delay)
-            let newTotalDuration = remainingTime + additionalDelayInSeconds
+            // Use the maximum of remaining time and new message delay
+            let newTotalDuration = max(remainingTime, additionalDelayInSeconds)
             totalDelayDuration = newTotalDuration
             timerStartTime = Date() // Reset start time to now
             
