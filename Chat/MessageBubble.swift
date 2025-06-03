@@ -6,8 +6,12 @@
 //
 
 import SwiftUI
+
 struct MessageBubble: View {
     let message: Message
+    @State private var isVisible = false
+    @State private var hasAppeared = false
+    
     var body: some View {
         HStack {
             if message.isFromUser {
@@ -29,7 +33,25 @@ struct MessageBubble: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
+        .scaleEffect(isVisible ? 1.0 : 0.85)
+        .opacity(isVisible ? 1.0 : 0.0)
+        .offset(y: isVisible ? 0 : 20)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8, blendDuration: 0), value: isVisible)
+        .onAppear {
+            if !hasAppeared {
+                hasAppeared = true
+                // Add a small delay for staggered effect when multiple messages load
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                        isVisible = true
+                    }
+                }
+            } else {
+                isVisible = true
+            }
+        }
     }
+    
     private func timeString(from date: Date) -> String {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
@@ -40,6 +62,7 @@ struct MessageBubble: View {
 // Typing Indicator Component
 struct TypingIndicator: View {
     @State private var animationStates = [false, false, false]
+    @State private var isVisible = false
     
     var body: some View {
         HStack {
@@ -67,11 +90,25 @@ struct TypingIndicator: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
+        .scaleEffect(isVisible ? 1.0 : 0.85)
+        .opacity(isVisible ? 1.0 : 0.0)
+        .offset(y: isVisible ? 0 : 20)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isVisible)
         .onAppear {
             for index in 0..<3 {
                 DispatchQueue.main.asyncAfter(deadline: .now() + Double(index) * 0.2) {
                     animationStates[index] = true
                 }
+            }
+            
+            // Add entrance animation for typing indicator
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                isVisible = true
+            }
+        }
+        .onDisappear {
+            withAnimation(.easeOut(duration: 0.2)) {
+                isVisible = false
             }
         }
     }

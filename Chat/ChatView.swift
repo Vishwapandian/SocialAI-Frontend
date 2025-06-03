@@ -141,49 +141,71 @@ struct ChatView: View {
                         welcomeView
                             .id("welcomeView")
                     }
-                    ForEach(viewModel.messages.sorted(by: { $0.timestamp < $1.timestamp })) { message in
+                    ForEach(Array(viewModel.messages.sorted(by: { $0.timestamp < $1.timestamp }).enumerated()), id: \.element.id) { index, message in
                         MessageBubble(message: message)
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .bottom).combined(with: .opacity).combined(with: .scale(scale: 0.9)),
+                                removal: .opacity.combined(with: .scale(scale: 0.8))
+                            ))
                     }
                     
                     // Add typing indicator when AI is typing
                     if viewModel.isAITyping {
                         TypingIndicator()
                             .id("typingIndicator")
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .bottom).combined(with: .opacity).combined(with: .scale(scale: 0.9)),
+                                removal: .opacity.combined(with: .scale(scale: 0.8))
+                            ))
                     }
                     
                     Spacer()
                         .frame(height: 1)
                         .id("bottomSpacer")
                 }
+                .animation(.spring(response: 0.6, dampingFraction: 0.8), value: viewModel.messages.count)
+                .animation(.spring(response: 0.5, dampingFraction: 0.7), value: viewModel.isAITyping)
                 .padding(.top, 60)
             }
             .ignoresSafeArea(.keyboard, edges: .bottom)
             .onChange(of: viewModel.messages) { _ in
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) { 
+                        proxy.scrollTo("bottomSpacer", anchor: .bottom) 
+                    }
                 }
             }
             .onChange(of: viewModel.isAITyping) { _ in
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) { 
+                        proxy.scrollTo("bottomSpacer", anchor: .bottom) 
+                    }
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { 
+                        proxy.scrollTo("bottomSpacer", anchor: .bottom) 
+                    }
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { 
+                        proxy.scrollTo("bottomSpacer", anchor: .bottom) 
+                    }
                 }
             }
             .onAppear {
                 DispatchQueue.main.async {
                     if viewModel.messages.isEmpty {
-                        proxy.scrollTo("welcomeView", anchor: .bottom)
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            proxy.scrollTo("welcomeView", anchor: .bottom)
+                        }
                     } else {
-                        proxy.scrollTo("bottomSpacer", anchor: .bottom)
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            proxy.scrollTo("bottomSpacer", anchor: .bottom)
+                        }
                     }
                 }
             }
