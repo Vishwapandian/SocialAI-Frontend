@@ -61,8 +61,9 @@ struct MessageBubble: View {
 
 // Typing Indicator Component
 struct TypingIndicator: View {
-    @State private var animationStates = [false, false, false]
+    @State private var currentDot = 0
     @State private var isVisible = false
+    @State private var timer: Timer?
     
     var body: some View {
         HStack {
@@ -71,11 +72,11 @@ struct TypingIndicator: View {
                     Circle()
                         .fill(Color.primary.opacity(0.6))
                         .frame(width: 8, height: 8)
-                        .scaleEffect(animationStates[index] ? 1.2 : 0.8)
+                        .scaleEffect(currentDot == index ? 1.3 : 0.8)
+                        .opacity(currentDot == index ? 1.0 : 0.5)
                         .animation(
-                            Animation.easeInOut(duration: 0.6)
-                                .repeatForever(autoreverses: true),
-                            value: animationStates[index]
+                            .easeInOut(duration: 0.3),
+                            value: currentDot
                         )
                 }
             }
@@ -95,20 +96,28 @@ struct TypingIndicator: View {
         .offset(y: isVisible ? 0 : 20)
         .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isVisible)
         .onAppear {
-            for index in 0..<3 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + Double(index) * 0.2) {
-                    animationStates[index] = true
-                }
-            }
-            
             // Add entrance animation for typing indicator
             withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
                 isVisible = true
             }
+            
+            // Start the dot animation cycle
+            startDotAnimation()
         }
         .onDisappear {
+            timer?.invalidate()
+            timer = nil
+            
             withAnimation(.easeOut(duration: 0.2)) {
                 isVisible = false
+            }
+        }
+    }
+    
+    private func startDotAnimation() {
+        timer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.3)) {
+                currentDot = (currentDot + 1) % 3
             }
         }
     }
