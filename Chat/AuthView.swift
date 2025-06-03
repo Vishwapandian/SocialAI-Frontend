@@ -79,14 +79,6 @@ struct AuthView: View {
                     .cornerRadius(12)
                     .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                 }
-
-                // Error message
-                if let error = auth.error {
-                    Text(error)
-                        .foregroundColor(.red)
-                        .font(.caption)
-                        .padding(.top, 4)
-                }
             }
             .padding()
         }
@@ -131,14 +123,8 @@ struct AuthView: View {
         var shuffledColors = auraColors.shuffled()
         // Take a random number of colors (at least 2 for a gradient)
         let numberOfColors = Int.random(in: 2...shuffledColors.count)
-        // Ensure we have distinct colors for the start and end of the base gradient
-        // and add more random colors in between if needed.
+        
         var colorsToShow = Array(shuffledColors.prefix(numberOfColors))
-
-        // To make the gradient more dynamic, sometimes we might want to repeat colors
-        // or ensure the start and end points are different.
-        // For simplicity, we're just taking a random slice.
-        // You can add more sophisticated logic here for color combinations.
 
         // Ensure there are at least two colors for a gradient
         if colorsToShow.count < 2 {
