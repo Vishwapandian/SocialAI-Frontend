@@ -21,10 +21,17 @@ class ChatViewModel: ObservableObject {
     private let socialAIService = SocialAIService()
     private var cancellables = Set<AnyCancellable>()
     
-    // Message queue system
+    // Message queue system for AI responses
     private var messageQueue: [String] = []
     private var queueTimer: Timer?
     private var isProcessingQueue: Bool = false
+    
+    // Input delay system for batching user messages
+    private var pendingUserMessage: String = ""
+    private var inputDelayTimer: Timer?
+    private var isInputDelayActive: Bool = false
+    private var timerStartTime: Date?
+    private var totalDelayDuration: TimeInterval = 0
     
     // Inject userId from AuthViewModel if available
     var userId: String? {
@@ -47,13 +54,84 @@ class ChatViewModel: ObservableObject {
         let trimmedMsg = currentMessage.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedMsg.isEmpty else { return }
 
+        // Add the message to UI immediately
         let userMessage = Message(content: trimmedMsg, isFromUser: true)
         messages.append(userMessage)
 
+        // Handle input delay and batching
+        handleInputWithDelay(trimmedMsg)
+        
+        // Clear the current message input
         currentMessage = ""
-        isAITyping = true // Show typing indicator
-
-        socialAIService.sendMessage(trimmedMsg)
+    }
+    
+    private func handleInputWithDelay(_ message: String) {
+        let characterCount = message.count
+        let additionalDelayInSeconds = Double(characterCount * 1) // 1 second per character
+        
+        if isInputDelayActive {
+            // Timer is already running, calculate remaining time and add new delay
+            guard let startTime = timerStartTime else {
+                // Fallback if start time is somehow nil
+                pendingUserMessage = message
+                isInputDelayActive = true
+                timerStartTime = Date()
+                totalDelayDuration = additionalDelayInSeconds
+                startNewTimer(duration: additionalDelayInSeconds)
+                return
+            }
+            
+            let elapsedTime = Date().timeIntervalSince(startTime)
+            let remainingTime = max(0, totalDelayDuration - elapsedTime)
+            
+            // Concatenate the message
+            if !pendingUserMessage.isEmpty {
+                pendingUserMessage += "\n" + message
+            } else {
+                pendingUserMessage = message
+            }
+            
+            // Cancel existing timer
+            inputDelayTimer?.invalidate()
+            
+            // Calculate new total duration (remaining time + additional delay)
+            let newTotalDuration = remainingTime + additionalDelayInSeconds
+            totalDelayDuration = newTotalDuration
+            timerStartTime = Date() // Reset start time to now
+            
+            // Start new timer with the calculated duration
+            startNewTimer(duration: newTotalDuration)
+        } else {
+            // No timer running, start a new batch
+            pendingUserMessage = message
+            isInputDelayActive = true
+            timerStartTime = Date()
+            totalDelayDuration = additionalDelayInSeconds
+            
+            startNewTimer(duration: additionalDelayInSeconds)
+        }
+    }
+    
+    private func startNewTimer(duration: TimeInterval) {
+        inputDelayTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
+            self?.sendBatchedMessage()
+        }
+    }
+    
+    private func sendBatchedMessage() {
+        guard !pendingUserMessage.isEmpty else {
+            resetInputDelay()
+            return
+        }
+        
+        let messageToSend = pendingUserMessage
+        resetInputDelay()
+        
+        // Set typing indicator
+        isAITyping = true
+        
+        // Send the batched message to the backend
+        socialAIService.sendMessage(messageToSend)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] completion in
                 guard let self = self else { return }
@@ -67,6 +145,15 @@ class ChatViewModel: ObservableObject {
                 self.processAIResponse(response.response)
             }
             .store(in: &cancellables)
+    }
+    
+    private func resetInputDelay() {
+        inputDelayTimer?.invalidate()
+        inputDelayTimer = nil
+        pendingUserMessage = ""
+        isInputDelayActive = false
+        timerStartTime = nil
+        totalDelayDuration = 0
     }
     
     private func processAIResponse(_ response: String) {
@@ -137,8 +224,9 @@ class ChatViewModel: ObservableObject {
             return
         }
         
-        // Stop any ongoing queue processing
+        // Stop any ongoing processing
         stopQueueProcessing()
+        resetInputDelay()
         
         // Call the reset API
         socialAIService.resetUserData(userId: currentUserId)
@@ -197,5 +285,6 @@ class ChatViewModel: ObservableObject {
     
     deinit {
         stopQueueProcessing()
+        resetInputDelay()
     }
 }
