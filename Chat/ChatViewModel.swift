@@ -16,9 +16,15 @@ class ChatViewModel: ObservableObject {
     @Published var latestEmotions: [String: Int]? = nil // To store the latest emotions
     @Published var emotionDisplayContent: String? = nil // For the alert
     @Published var messages: [Message] = []
+    @Published var isAITyping: Bool = false // To show typing indicator
     
     private let socialAIService = SocialAIService()
     private var cancellables = Set<AnyCancellable>()
+    
+    // Message queue system
+    private var messageQueue: [String] = []
+    private var queueTimer: Timer?
+    private var isProcessingQueue: Bool = false
     
     // Inject userId from AuthViewModel if available
     var userId: String? {
@@ -45,6 +51,7 @@ class ChatViewModel: ObservableObject {
         messages.append(userMessage)
 
         currentMessage = ""
+        isAITyping = true // Show typing indicator
 
         socialAIService.sendMessage(trimmedMsg)
             .receive(on: DispatchQueue.main)
@@ -52,14 +59,67 @@ class ChatViewModel: ObservableObject {
                 guard let self = self else { return }
                 if case .failure(let err) = completion {
                     self.error = err.localizedDescription
+                    self.isAITyping = false
                 }
             } receiveValue: { [weak self] response in
                 guard let self = self else { return }
-                let aiMessage = Message(content: response.response.trimmingCharacters(in: .whitespacesAndNewlines), isFromUser: false)
-                self.messages.append(aiMessage)
                 self.latestEmotions = response.emotions // Store emotions
+                self.processAIResponse(response.response)
             }
             .store(in: &cancellables)
+    }
+    
+    private func processAIResponse(_ response: String) {
+        // Split response by newlines and filter out empty lines
+        let messageParts = response.components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        
+        // Add to queue
+        messageQueue.append(contentsOf: messageParts)
+        
+        // Start processing queue if not already processing
+        if !isProcessingQueue {
+            processMessageQueue()
+        }
+    }
+    
+    private func processMessageQueue() {
+        guard !messageQueue.isEmpty else {
+            isProcessingQueue = false
+            isAITyping = false
+            return
+        }
+        
+        isProcessingQueue = true
+        
+        // Get the next message from queue
+        let nextMessage = messageQueue.removeFirst()
+        
+        // Calculate delay based on character count (1 second per character, with min/max bounds)
+        let characterCount = nextMessage.count
+        let delay = max(1.0, min(Double(characterCount) * 0.1, 5.0)) // Min 1s, max 5s, 0.1s per char
+        
+        // Schedule the message to be added after delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            guard let self = self else { return }
+            
+            // Add message to chat
+            let aiMessage = Message(content: nextMessage, isFromUser: false)
+            self.messages.append(aiMessage)
+            
+            // Continue processing queue
+            self.processMessageQueue()
+        }
+    }
+    
+    // Stop queue processing (useful for cleanup)
+    private func stopQueueProcessing() {
+        queueTimer?.invalidate()
+        queueTimer = nil
+        messageQueue.removeAll()
+        isProcessingQueue = false
+        isAITyping = false
     }
 
     func requestEmotionDisplay() {
@@ -76,6 +136,9 @@ class ChatViewModel: ObservableObject {
             self.error = "Cannot reset: User not identified."
             return
         }
+        
+        // Stop any ongoing queue processing
+        stopQueueProcessing()
         
         // Call the reset API
         socialAIService.resetUserData(userId: currentUserId)
@@ -130,5 +193,9 @@ class ChatViewModel: ObservableObject {
                 // self?.requestEmotionDisplay() 
             }
             .store(in: &cancellables)
+    }
+    
+    deinit {
+        stopQueueProcessing()
     }
 }

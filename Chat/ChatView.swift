@@ -144,6 +144,13 @@ struct ChatView: View {
                     ForEach(viewModel.messages.sorted(by: { $0.timestamp < $1.timestamp })) { message in
                         MessageBubble(message: message)
                     }
+                    
+                    // Add typing indicator when AI is typing
+                    if viewModel.isAITyping {
+                        TypingIndicator()
+                            .id("typingIndicator")
+                    }
+                    
                     Spacer()
                         .frame(height: 1)
                         .id("bottomSpacer")
@@ -152,6 +159,11 @@ struct ChatView: View {
             }
             .ignoresSafeArea(.keyboard, edges: .bottom)
             .onChange(of: viewModel.messages) { _ in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
+                }
+            }
+            .onChange(of: viewModel.isAITyping) { _ in
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                     withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
                 }
@@ -298,5 +310,40 @@ extension ChatView {
             Gradient.Stop(color: Self.defaultAuraColor, location: 0),
             Gradient.Stop(color: Self.defaultAuraColor, location: 1)
         ] : newStops
+    }
+}
+
+// Typing Indicator Component
+struct TypingIndicator: View {
+    @State private var animationPhase = 0
+    
+    var body: some View {
+        HStack {
+            HStack(spacing: 4) {
+                ForEach(0..<3, id: \.self) { index in
+                    Circle()
+                        .fill(Color.gray.opacity(0.6))
+                        .frame(width: 8, height: 8)
+                        .scaleEffect(animationPhase == index ? 1.2 : 0.8)
+                        .animation(
+                            Animation.easeInOut(duration: 0.6)
+                                .repeatForever(autoreverses: true)
+                                .delay(Double(index) * 0.2),
+                            value: animationPhase
+                        )
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color.gray.opacity(0.1))
+            .cornerRadius(20)
+            
+            Spacer()
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 4)
+        .onAppear {
+            animationPhase = 1
+        }
     }
 }
