@@ -21,7 +21,14 @@ struct MessageInputView: View {
                     onMessageChanged?()
                 }
 
-            Button(action: onSend) {
+            Button(action: {
+                // Only send if message is not empty
+                let messageToSend = message.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !messageToSend.isEmpty else { return }
+                
+                // Call the parent's send function (which handles clearing)
+                onSend()
+            }) {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 30))
                     .foregroundColor(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?
