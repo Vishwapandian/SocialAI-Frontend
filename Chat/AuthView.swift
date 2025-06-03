@@ -108,16 +108,6 @@ struct AuthView: View {
 
     // MARK: - Helpers
 
-    private var backgroundColor: Color {
-        colorScheme == .dark ? Color.black : Color(.systemGroupedBackground)
-    }
-
-    private var primaryButtonColor = Color("birdieBlue")
-
-    private var secondaryTextColor: Color {
-        colorScheme == .dark ? Color.gray : Color.gray
-    }
-
     private func handleGoogleSignIn() {
         guard let root = UIApplication.shared.connectedScenes
             .compactMap({ ($0 as? UIWindowScene)?.keyWindow })
