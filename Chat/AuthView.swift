@@ -1,5 +1,6 @@
 import SwiftUI
 import GoogleSignInSwift
+import AuthenticationServices
 
 struct AuthView: View {
     @EnvironmentObject var auth: AuthViewModel
@@ -101,6 +102,26 @@ struct AuthView: View {
                             .scaledToFit()
                             .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                         Text("Continue with Google")
+                            //.fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(.ultraThinMaterial)
+                    .foregroundColor(.primary)
+                    .cornerRadius(12)
+                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
+                }
+                .frame(height: 50)
+
+                // Apple Sign-In Button
+                Button {
+                    handleAppleSignIn()
+                } label: {
+                    HStack {
+                        Image(systemName: "apple.logo")
+                            .font(.title2)
+                            .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
+                        Text("Continue with Apple")
                             //.fontWeight(.semibold)
                     }
                     .frame(maxWidth: .infinity)
@@ -226,6 +247,10 @@ struct AuthView: View {
         Task {
             await auth.signInWithGoogle(presentingVC: root)
         }
+    }
+
+    private func handleAppleSignIn() {
+        auth.signInWithApple()
     }
 
     private func dismissKeyboard() {
