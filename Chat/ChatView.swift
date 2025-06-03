@@ -61,6 +61,8 @@ struct ChatView: View {
         .onTapGesture {
             // Dismiss keyboard/input focus when tapping background
             isInputFocused = false
+            // Send any pending batched messages immediately
+            viewModel.sendBatchedMessageImmediately()
         }
         .alert(isPresented: .init(
             get: { viewModel.error != nil },
@@ -195,6 +197,8 @@ struct ChatView: View {
                         proxy.scrollTo("bottomSpacer", anchor: .bottom) 
                     }
                 }
+                // Send any pending batched messages immediately when keyboard hides
+                viewModel.sendBatchedMessageImmediately()
             }
             .onAppear {
                 DispatchQueue.main.async {

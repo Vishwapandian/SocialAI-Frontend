@@ -287,4 +287,15 @@ class ChatViewModel: ObservableObject {
         stopQueueProcessing()
         resetInputDelay()
     }
+
+    func sendBatchedMessageImmediately() {
+        guard isInputDelayActive && !pendingUserMessage.isEmpty else { return }
+        
+        // Cancel the existing timer and start a 2-second delay
+        inputDelayTimer?.invalidate()
+        
+        inputDelayTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
+            self?.sendBatchedMessage()
+        }
+    }
 }
