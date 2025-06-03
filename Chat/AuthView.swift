@@ -4,9 +4,7 @@ import AuthenticationServices
 
 struct AuthView: View {
     @EnvironmentObject var auth: AuthViewModel
-    @State private var isNewAccount = false
     @State private var isLoading = false
-    @State private var confirmPassword = ""
 
     // State variable to hold the current set of colors for the gradient
     @State private var gradientColors: [Color] = Self.generateRandomColors()
@@ -36,83 +34,9 @@ struct AuthView: View {
 
             // Your existing content
             VStack(spacing: 24) {
-                // Birdie Image
-                /*
-                Image("birdie")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 100, height: 100)
-                    .padding(.top, 24)
-                 */
-
-                // Title
-                /*
-                Text(isNewAccount ? "Join EV-0" : "EV-0")
-                    .font(.largeTitle)
-                    //.fontWeight(.heavy)
-                    .foregroundColor(.primary)
-                 */
                 
                 Spacer()
-
-                // Email
-                inputField(title: "Email", text: $auth.email, isSecure: false)
-
-                // Password
-                inputField(title: "Password", text: $auth.password, isSecure: true)
-
-                // Confirm Password (only in sign-up mode)
-                if isNewAccount {
-                    inputField(title: "Confirm Password", text: $confirmPassword, isSecure: true)
-                }
-
-                // Primary Action Button
-                Button(action: handleAuthAction) {
-                    HStack {
-                        if isLoading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        }
-                        Text(isNewAccount ? "Sign Up" : "Sign In")
-                            //.fontWeight(.bold)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(.ultraThinMaterial)
-                    .foregroundColor(.primary)
-                    .cornerRadius(12)
-                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
-                }
-                .disabled(isLoading || (isNewAccount && auth.password != confirmPassword))
-
-                // Divider
-                Divider()
-                    .frame(height: 1)
-                    .background(.ultraThinMaterial) // more visible than default
-                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                 
-
-                // Google Sign-In Button (custom styled container)
-                Button {
-                    handleGoogleSignIn()
-                } label: {
-                    HStack {
-                        Image("google")
-                            .resizable()
-                            .scaledToFit()
-                            .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
-                        Text("Continue with Google")
-                            //.fontWeight(.semibold)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(.ultraThinMaterial)
-                    .foregroundColor(.primary)
-                    .cornerRadius(12)
-                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
-                }
-                .frame(height: 50)
-
                 // Apple Sign-In Button
                 Button {
                     handleAppleSignIn()
@@ -120,32 +44,41 @@ struct AuthView: View {
                     HStack {
                         Image(systemName: "apple.logo")
                             .font(.title2)
+                            .frame(width: 20, height: 20)
                             .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
-                        Text("Continue with Apple")
+                        Text("Continue with Apple ")
                             //.fontWeight(.semibold)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
+                    .frame(maxWidth: .infinity, minHeight: 40, maxHeight: 40)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
                     .background(.ultraThinMaterial)
                     .foregroundColor(.primary)
                     .cornerRadius(12)
                     .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                 }
-                .frame(height: 50)
 
-                // Switch between Sign In / Sign Up
-                Button(action: {
-                    withAnimation(.none) {
-                        isNewAccount.toggle()
-                        auth.error = nil
+                // Google Sign-In Button
+                Button {
+                    handleGoogleSignIn()
+                } label: {
+                    HStack {
+                        Image("google")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 20, height: 20)
+                            .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
+                        Text("Continue with Google")
+                            //.fontWeight(.semibold)
                     }
-                }) {
-                    Text(isNewAccount ? "Already have an account? Sign In" : "Don't have an account? Sign Up")
-                        .font(.footnote)
-                        .foregroundColor(.primary)
-                        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
+                    .frame(maxWidth: .infinity, minHeight: 40, maxHeight: 40)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(.ultraThinMaterial)
+                    .foregroundColor(.primary)
+                    .cornerRadius(12)
+                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                 }
-                .padding(.top, 8)
 
                 // Error message
                 if let error = auth.error {
@@ -154,9 +87,8 @@ struct AuthView: View {
                         .font(.caption)
                         .padding(.top, 4)
                 }
-
-                //Spacer()
             }
+            .padding()
         }
         .padding()
         .background(.ultraThinMaterial)
@@ -184,60 +116,6 @@ struct AuthView: View {
 
     private var secondaryTextColor: Color {
         colorScheme == .dark ? Color.gray : Color.gray
-    }
-
-    private func inputField(title: String, text: Binding<String>, isSecure: Bool) -> some View {
-        Group {
-            if isSecure {
-                SecureField(title, text: text)
-                    .padding()
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(12)
-                    .autocapitalization(.none)
-                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
-            } else {
-                TextField(title, text: text)
-                    .keyboardType(.emailAddress)
-                    .textContentType(.emailAddress)
-                    .autocapitalization(.none)
-                    .padding()
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(12)
-                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
-            }
-        }
-    }
-
-    private func dividerWithText(_ text: String) -> some View {
-        HStack {
-            Rectangle()
-                .frame(height: 1)
-                .opacity(0.3)
-            Text(text)
-                .foregroundColor(.gray)
-                .font(.caption)
-                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
-            Rectangle()
-                .frame(height: 1)
-                .opacity(0.3)
-        }
-    }
-
-    private func handleAuthAction() {
-        Task {
-            isLoading = true
-            defer { isLoading = false }
-
-            if isNewAccount {
-                if auth.password == confirmPassword {
-                    await auth.signUpWithEmail()
-                } else {
-                    auth.error = "Passwords do not match."
-                }
-            } else {
-                await auth.signInWithEmail()
-            }
-        }
     }
 
     private func handleGoogleSignIn() {

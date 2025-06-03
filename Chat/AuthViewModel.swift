@@ -12,8 +12,6 @@ final class AuthViewModel: NSObject, ObservableObject {
 
     // Public bindings
     @Published var user: User?
-    @Published var email: String = ""
-    @Published var password: String = ""
     @Published var error: String?
     @Published var isLoading: Bool = true
 
@@ -35,23 +33,7 @@ final class AuthViewModel: NSObject, ObservableObject {
         if let handle { Auth.auth().removeStateDidChangeListener(handle) }
     }
 
-    // MARK: - Email / password
-
-    func signUpWithEmail() async {
-        do {
-            let _ = try await Auth.auth().createUser(withEmail: email, password: password)
-        } catch {
-            self.error = error.localizedDescription
-        }
-    }
-
-    func signInWithEmail() async {
-        do {
-            let _ = try await Auth.auth().signIn(withEmail: email, password: password)
-        } catch {
-            self.error = error.localizedDescription
-        }
-    }
+    // MARK: - Sign Out
 
     func signOut() {
         try? Auth.auth().signOut()
