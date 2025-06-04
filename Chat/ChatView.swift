@@ -156,6 +156,8 @@ struct ChatView: View {
                     // Add typing indicator when AI is typing
                     if viewModel.isAITyping {
                         TypingIndicator()
+                            // Closer spacing after AI message, normal spacing if no messages or after user message
+                            .padding(.top, (!sortedMessages.isEmpty && !sortedMessages.last!.isFromUser) ? 4 : 20)
                             .id("typingIndicator")
                             .transition(.asymmetric(
                                 insertion: .move(edge: .bottom).combined(with: .opacity).combined(with: .scale(scale: 0.9)),
