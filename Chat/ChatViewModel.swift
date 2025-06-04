@@ -21,6 +21,10 @@ class ChatViewModel: ObservableObject {
     private let socialAIService = SocialAIService()
     private var cancellables = Set<AnyCancellable>()
     
+    // Homeostasis emotion polling
+    private var emotionPollingTimer: Timer?
+    private let emotionPollingInterval: TimeInterval = 15.0 // Poll every 15 seconds to catch stochastic changes
+    
     // Message queue system for AI responses
     private var messageQueue: [String] = []
     private var queueTimer: Timer?
@@ -52,6 +56,7 @@ class ChatViewModel: ObservableObject {
         // Initialize an empty chat
         self.messages = []
         fetchInitialEmotionsData() // Fetch emotions from backend
+        startEmotionPolling() // Start polling for homeostasis updates
     }
 
     func sendMessage() {
@@ -307,6 +312,7 @@ class ChatViewModel: ObservableObject {
     deinit {
         stopQueueProcessing()
         resetInputDelay()
+        stopEmotionPolling()
     }
 
     private func startIdleTimer() {
@@ -332,5 +338,62 @@ class ChatViewModel: ObservableObject {
         // Cancel the main delay timer and send immediately
         inputDelayTimer?.invalidate()
         sendBatchedMessage()
+    }
+
+    private func startEmotionPolling() {
+        guard let currentUserId = self.userId else {
+            print("[ChatViewModel] Cannot start emotion polling: userId is nil.")
+            return
+        }
+        
+        // Stop any existing timer
+        stopEmotionPolling()
+        
+        print("[ChatViewModel] Starting emotion polling every \(emotionPollingInterval) seconds")
+        
+        emotionPollingTimer = Timer.scheduledTimer(withTimeInterval: emotionPollingInterval, repeats: true) { [weak self] _ in
+            self?.pollForEmotionUpdates()
+        }
+    }
+    
+    private func stopEmotionPolling() {
+        emotionPollingTimer?.invalidate()
+        emotionPollingTimer = nil
+        print("[ChatViewModel] Stopped emotion polling")
+    }
+    
+    private func pollForEmotionUpdates() {
+        guard let currentUserId = self.userId else {
+            print("[ChatViewModel] Cannot poll emotions: userId is nil.")
+            return
+        }
+        
+        socialAIService.fetchCurrentEmotions(userId: currentUserId)
+            .receive(on: DispatchQueue.main)
+            .sink { completion in
+                if case .failure(let error) = completion {
+                    // Silently handle polling errors to avoid spamming the user
+                    print("[ChatViewModel] Emotion polling failed: \(error.localizedDescription)")
+                }
+            } receiveValue: { [weak self] emotionResponse in
+                // Only update if emotions have actually changed
+                if self?.latestEmotions != emotionResponse.emotions {
+                    print("[ChatViewModel] Homeostasis emotion update: \(emotionResponse.emotions)")
+                    self?.latestEmotions = emotionResponse.emotions
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    // MARK: - Public Methods
+    
+    func pauseEmotionPolling() {
+        print("[ChatViewModel] Pausing emotion polling")
+        stopEmotionPolling()
+    }
+    
+    func resumeEmotionPolling() {
+        print("[ChatViewModel] Resuming emotion polling")
+        startEmotionPolling()
     }
 }

@@ -95,6 +95,12 @@ struct ChatView: View {
         .onAppear {
             updateGradientStops(from: viewModel.latestEmotions)
             animateGradient.toggle()
+            // Resume emotion polling when view appears
+            viewModel.resumeEmotionPolling()
+        }
+        .onDisappear {
+            // Pause emotion polling when view disappears
+            viewModel.pauseEmotionPolling()
         }
         .onChange(of: viewModel.latestEmotions) { newEmotions in
             updateGradientStops(from: newEmotions)

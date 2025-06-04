@@ -77,7 +77,11 @@ class SocialAIService: ObservableObject {
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let body: [String: Any] = ["userId": userId]
+        var body: [String: Any] = ["userId": userId]
+        // Include sessionId if available for homeostasis-aware emotion fetching
+        if let sessionId = sessionId {
+            body["sessionId"] = sessionId
+        }
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
         return URLSession.shared.dataTaskPublisher(for: request)
@@ -85,6 +89,38 @@ class SocialAIService: ObservableObject {
                 guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
                     let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error fetching emotions"
                     print("[SocialAIService] fetchInitialEmotions error: \(errorMessage), code: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+                    throw NSError(domain: "SocialAIService", code: (response as? HTTPURLResponse)?.statusCode ?? 0, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+                }
+                return data
+            }
+            .decode(type: EmotionDataResponse.self, decoder: JSONDecoder())
+            .eraseToAnyPublisher()
+    }
+
+    // MARK: - Fetch Current Emotions (with homeostasis)
+    func fetchCurrentEmotions(userId: String) -> AnyPublisher<EmotionDataResponse, Error> {
+        print("[SocialAIService] fetchCurrentEmotions for userId -> \(userId), sessionId -> \(sessionId ?? "nil")")
+
+        guard let url = URL(string: emotionsURL) else {
+            return Fail(error: NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid emotions URL"])).eraseToAnyPublisher()
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        var body: [String: Any] = ["userId": userId]
+        // Always include sessionId for homeostasis-aware emotion fetching
+        if let sessionId = sessionId {
+            body["sessionId"] = sessionId
+        }
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .tryMap { data, response in
+                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                    let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error fetching current emotions"
+                    print("[SocialAIService] fetchCurrentEmotions error: \(errorMessage), code: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
                     throw NSError(domain: "SocialAIService", code: (response as? HTTPURLResponse)?.statusCode ?? 0, userInfo: [NSLocalizedDescriptionKey: errorMessage])
                 }
                 return data
