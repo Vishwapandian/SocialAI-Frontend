@@ -32,7 +32,6 @@ struct MessageBubble: View {
             }
         }
         .padding(.horizontal)
-        .padding(.vertical, 10)
         .scaleEffect(isVisible ? 1.0 : 0.85)
         .opacity(isVisible ? 1.0 : 0.0)
         .offset(y: isVisible ? 0 : 20)

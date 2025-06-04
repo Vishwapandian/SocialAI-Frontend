@@ -134,15 +134,19 @@ struct ChatView: View {
 
     // Extracted chat list view
     private var chatList: some View {
-        ScrollViewReader { proxy in
+        // Compute sorted messages for consistent ordering and spacing logic
+        let sortedMessages = viewModel.messages.sorted(by: { $0.timestamp < $1.timestamp })
+        return ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 0) {
                     if viewModel.messages.isEmpty {
                         welcomeView
                             .id("welcomeView")
                     }
-                    ForEach(Array(viewModel.messages.sorted(by: { $0.timestamp < $1.timestamp }).enumerated()), id: \.element.id) { index, message in
+                    ForEach(Array(sortedMessages.enumerated()), id: \.element.id) { index, message in
                         MessageBubble(message: message)
+                            // Closer spacing for consecutive messages from the same user
+                            .padding(.top, (index > 0 && sortedMessages[index - 1].isFromUser == message.isFromUser) ? 4 : 20)
                             .transition(.asymmetric(
                                 insertion: .move(edge: .bottom).combined(with: .opacity).combined(with: .scale(scale: 0.9)),
                                 removal: .opacity.combined(with: .scale(scale: 0.8))
