@@ -9,7 +9,7 @@ struct MessageInputView: View {
 
     var body: some View {
         HStack(alignment: .bottom) {
-            TextField("Talk with EV-0", text: $message, axis: .vertical)
+            TextField("Talk with Auri", text: $message, axis: .vertical)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 //.background(Color.gray.opacity(0.2))  // Translucent gray background

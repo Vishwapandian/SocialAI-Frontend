@@ -91,7 +91,7 @@ class ChatViewModel: ObservableObject {
     
     private func handleInputWithDelay(_ message: String) {
         let characterCount = message.count
-        let additionalDelayInSeconds = max(5.0, Double(characterCount * 1)) // Minimum 5 seconds, 1 second per character
+        let additionalDelayInSeconds = max(20.0, Double(characterCount * 1)) // Minimum 20 seconds, 1 second per character
         
         if isInputDelayActive {
             // Timer is already running, calculate remaining time and use max with new delay

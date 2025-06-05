@@ -37,7 +37,7 @@ struct ChatView: View {
                         }
                         */
                         
-                        Button("Reset EV-0", role: .destructive) {
+                        Button("Reset Auri", role: .destructive) {
                             showingResetConfirmation = true
                         }
                         
@@ -84,13 +84,13 @@ struct ChatView: View {
                 Text(content)
             }
         }
-        .alert("Reset EV-0", isPresented: $showingResetConfirmation) {
+        .alert("Reset Auri", isPresented: $showingResetConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button("Reset", role: .destructive) {
                 viewModel.resetMemoryAndChat()
             }
         } message: {
-            Text("Are you sure you want to reset all data? This will restore the EV-0's memory to factory settings and cannot be undone.")
+            Text("Are you sure you want to reset all data? This will restore the Auri's memory to factory settings and cannot be undone.")
         }
         .onAppear {
             updateGradientStops(from: viewModel.latestEmotions)
