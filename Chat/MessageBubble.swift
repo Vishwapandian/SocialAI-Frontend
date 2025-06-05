@@ -63,7 +63,22 @@ struct TypingIndicator: View {
     @State private var currentDot = 0
     @State private var isVisible = false
     @State private var timer: Timer?
-    
+    let latestEmotions: [String: Int]?
+
+    // Emotion to speed mapping (lower is faster)
+    private let emotionSpeedMapping: [String: TimeInterval] = [
+        "Red": 0.2,
+        "Yellow": 0.25,
+        "Purple": 0.3,
+        "Green": 0.35,
+        "Blue": 0.4
+    ]
+    private let defaultSpeed: TimeInterval = 0.4 // User's preferred default
+
+    // Stores the currently active animation interval for the timer.
+    // Initialized with defaultSpeed, then updated by onAppear and onChange.
+    @State private var activeAnimationInterval: TimeInterval = 0.6
+
     var body: some View {
         HStack {
             HStack(spacing: 4) {
@@ -74,7 +89,7 @@ struct TypingIndicator: View {
                         .scaleEffect(currentDot == index ? 1.3 : 0.8)
                         .opacity(currentDot == index ? 1.0 : 0.5)
                         .animation(
-                            .easeInOut(duration: 0.3),
+                            .easeInOut(duration: 0.3), // Animation for individual dot scaling
                             value: currentDot
                         )
                 }
@@ -98,9 +113,14 @@ struct TypingIndicator: View {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
                 isVisible = true
             }
-            
-            // Start the dot animation cycle
-            startDotAnimation()
+            // Set initial speed based on current emotions and start the timer
+            updateActiveInterval(basedOn: self.latestEmotions)
+            restartDotAnimationTimer()
+        }
+        .onChange(of: latestEmotions) { newEmotions in
+            // Update speed and restart timer if emotions change
+            updateActiveInterval(basedOn: newEmotions)
+            restartDotAnimationTimer()
         }
         .onDisappear {
             timer?.invalidate()
@@ -111,10 +131,24 @@ struct TypingIndicator: View {
             }
         }
     }
+
+    private func getDominantEmotion(from emotions: [String: Int]?) -> String? {
+        guard let emotions = emotions, !emotions.isEmpty else { return nil }
+        return emotions.max(by: { $0.value < $1.value })?.key
+    }
+
+    private func updateActiveInterval(basedOn emotions: [String: Int]?) {
+        let dominantEmotion = getDominantEmotion(from: emotions)
+        self.activeAnimationInterval = emotionSpeedMapping[dominantEmotion ?? ""] ?? defaultSpeed
+    }
     
-    private func startDotAnimation() {
-        timer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { _ in
-            withAnimation(.easeInOut(duration: 0.3)) {
+    private func restartDotAnimationTimer() {
+        timer?.invalidate() // Stop any existing timer
+        timer = nil         // Ensure it's nilled out
+
+        // Start a new timer with the (potentially updated) activeAnimationInterval
+        timer = Timer.scheduledTimer(withTimeInterval: self.activeAnimationInterval, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.3)) { // Smooth transition for dot scaling
                 currentDot = (currentDot + 1) % 3
             }
         }
@@ -125,5 +159,10 @@ struct TypingIndicator: View {
     VStack {
         MessageBubble(message: Message(content: "Hello, how can I help you today?", isFromUser: false))
         MessageBubble(message: Message(content: "I need help with SwiftUI", isFromUser: true))
+        TypingIndicator(latestEmotions: ["Red": 70, "Blue": 30]) // Example with emotion
+        TypingIndicator(latestEmotions: ["Yellow": 80])
+        TypingIndicator(latestEmotions: ["Purple": 80])
+        TypingIndicator(latestEmotions: ["Green": 80])
+        TypingIndicator(latestEmotions: ["Blue": 80]) // Example with another emotion
     }
 }
