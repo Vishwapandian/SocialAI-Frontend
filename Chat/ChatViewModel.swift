@@ -55,8 +55,7 @@ class ChatViewModel: ObservableObject {
         socialAIService.userId = userId
         // Initialize an empty chat
         self.messages = []
-        fetchInitialEmotionsData() // Fetch emotions from backend
-        startEmotionPolling() // Start polling for homeostasis updates
+        startEmotionPolling() // Start polling for homeostasis updates (includes initial fetch)
     }
 
     func sendMessage() {
@@ -274,37 +273,11 @@ class ChatViewModel: ObservableObject {
                     
                     print("[ChatViewModel] Reset successful - cleared local state")
                     
-                    // Fetch fresh emotions (should be empty/default after reset)
-                    self.fetchInitialEmotionsData()
+                    // Restart emotion polling to get fresh emotions (should be empty/default after reset)
+                    self.startEmotionPolling()
                 } else {
                     self.error = "Reset failed: \(resetResponse.message)"
                 }
-            }
-            .store(in: &cancellables)
-    }
-
-    private func fetchInitialEmotionsData() {
-        guard let currentUserId = self.userId else {
-            print("[ChatViewModel] Cannot fetch initial emotions: userId is nil.")
-            // Optionally, set emotionDisplayContent to an error or guidance message here
-            // self.emotionDisplayContent = "Could not fetch AI emotions: User not identified."
-            return
-        }
-
-        socialAIService.fetchInitialEmotions(userId: currentUserId)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] completion in
-                if case .failure(let err) = completion {
-                    print("[ChatViewModel] Failed to fetch initial emotions: \(err.localizedDescription)")
-                    // self?.error = "Failed to load initial AI mood: \(err.localizedDescription)"
-                    // Consider setting emotionDisplayContent to provide feedback
-                     self?.emotionDisplayContent = "Could not load AI's current mood. Please try again later."
-                }
-            } receiveValue: { [weak self] emotionResponse in
-                print("[ChatViewModel] Successfully fetched initial emotions: \(emotionResponse.emotions)")
-                self?.latestEmotions = emotionResponse.emotions
-                // If you want to immediately show emotions in the alert after fetching:
-                // self?.requestEmotionDisplay() 
             }
             .store(in: &cancellables)
     }
@@ -350,6 +323,9 @@ class ChatViewModel: ObservableObject {
         stopEmotionPolling()
         
         print("[ChatViewModel] Starting emotion polling every \(emotionPollingInterval) seconds")
+        
+        // Immediately fetch emotions once, then start the regular timer
+        pollForEmotionUpdates()
         
         emotionPollingTimer = Timer.scheduledTimer(withTimeInterval: emotionPollingInterval, repeats: true) { [weak self] _ in
             self?.pollForEmotionUpdates()
