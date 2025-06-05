@@ -14,16 +14,16 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		E0D6A6D62DECDCDD00BB2236 /* Chat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Chat.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E0D6A6D62DECDCDD00BB2236 /* Auri.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Auri.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		E0758F3E2DA7B29300AE32D2 /* Exceptions for "Chat" folder in "Chat" target */ = {
+		E0758F3E2DA7B29300AE32D2 /* Exceptions for "Chat" folder in "Auri" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = E0758ED72DA7A5C700AE32D2 /* Chat */;
+			target = E0758ED72DA7A5C700AE32D2 /* Auri */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -31,7 +31,7 @@
 		E0758EDA2DA7A5C700AE32D2 /* Chat */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				E0758F3E2DA7B29300AE32D2 /* Exceptions for "Chat" folder in "Chat" target */,
+				E0758F3E2DA7B29300AE32D2 /* Exceptions for "Chat" folder in "Auri" target */,
 			);
 			path = Chat;
 			sourceTree = "<group>";
@@ -57,16 +57,16 @@
 			isa = PBXGroup;
 			children = (
 				E0758EDA2DA7A5C700AE32D2 /* Chat */,
-				E0D6A6D62DECDCDD00BB2236 /* Chat.app */,
+				E0D6A6D62DECDCDD00BB2236 /* Auri.app */,
 			);
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		E0758ED72DA7A5C700AE32D2 /* Chat */ = {
+		E0758ED72DA7A5C700AE32D2 /* Auri */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = E0758EE82DA7A5C900AE32D2 /* Build configuration list for PBXNativeTarget "Chat" */;
+			buildConfigurationList = E0758EE82DA7A5C900AE32D2 /* Build configuration list for PBXNativeTarget "Auri" */;
 			buildPhases = (
 				E0758ED42DA7A5C700AE32D2 /* Sources */,
 				E0758ED52DA7A5C700AE32D2 /* Frameworks */,
@@ -79,7 +79,7 @@
 			fileSystemSynchronizedGroups = (
 				E0758EDA2DA7A5C700AE32D2 /* Chat */,
 			);
-			name = Chat;
+			name = Auri;
 			packageProductDependencies = (
 				E05DAD9F2DC03678000FC188 /* FirebaseAuth */,
 				E05DADA12DC03678000FC188 /* FirebaseCore */,
@@ -87,7 +87,7 @@
 				E05DADA62DC036DC000FC188 /* GoogleSignInSwift */,
 			);
 			productName = Chat;
-			productReference = E0D6A6D62DECDCDD00BB2236 /* Chat.app */;
+			productReference = E0D6A6D62DECDCDD00BB2236 /* Auri.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -105,7 +105,7 @@
 					};
 				};
 			};
-			buildConfigurationList = E0758ED32DA7A5C700AE32D2 /* Build configuration list for PBXProject "Chat" */;
+			buildConfigurationList = E0758ED32DA7A5C700AE32D2 /* Build configuration list for PBXProject "Auri" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -123,7 +123,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				E0758ED72DA7A5C700AE32D2 /* Chat */,
+				E0758ED72DA7A5C700AE32D2 /* Auri */,
 			);
 		};
 /* End PBXProject section */
@@ -281,7 +281,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Chat/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Auras;
+				INFOPLIST_KEY_CFBundleDisplayName = Auri;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -314,7 +314,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Chat/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Auras;
+				INFOPLIST_KEY_CFBundleDisplayName = Auri;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -337,7 +337,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		E0758ED32DA7A5C700AE32D2 /* Build configuration list for PBXProject "Chat" */ = {
+		E0758ED32DA7A5C700AE32D2 /* Build configuration list for PBXProject "Auri" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				E0758EE62DA7A5C900AE32D2 /* Debug */,
@@ -346,7 +346,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		E0758EE82DA7A5C900AE32D2 /* Build configuration list for PBXNativeTarget "Chat" */ = {
+		E0758EE82DA7A5C900AE32D2 /* Build configuration list for PBXNativeTarget "Auri" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				E0758EE92DA7A5C900AE32D2 /* Debug */,
