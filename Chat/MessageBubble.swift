@@ -77,7 +77,7 @@ struct TypingIndicator: View {
 
     // Stores the currently active animation interval for the timer.
     // Initialized with defaultSpeed, then updated by onAppear and onChange.
-    @State private var activeAnimationInterval: TimeInterval = 0.6
+    @State private var activeAnimationInterval: TimeInterval = 0.4 // Aligned with user's defaultSpeed
 
     var body: some View {
         HStack {
@@ -88,10 +88,6 @@ struct TypingIndicator: View {
                         .frame(width: 8, height: 8)
                         .scaleEffect(currentDot == index ? 1.3 : 0.8)
                         .opacity(currentDot == index ? 1.0 : 0.5)
-                        .animation(
-                            .easeInOut(duration: 0.3), // Animation for individual dot scaling
-                            value: currentDot
-                        )
                 }
             }
             .frame(minHeight: 20)
@@ -148,7 +144,10 @@ struct TypingIndicator: View {
 
         // Start a new timer with the (potentially updated) activeAnimationInterval
         timer = Timer.scheduledTimer(withTimeInterval: self.activeAnimationInterval, repeats: true) { _ in
-            withAnimation(.easeInOut(duration: 0.3)) { // Smooth transition for dot scaling
+            // Make the dot's own visual animation duration proportional to the timer interval
+            // Use max to ensure a minimum animation duration, e.g., 0.1s
+            let dotVisualAnimationDuration = max(0.1, self.activeAnimationInterval * 0.8)
+            withAnimation(.easeInOut(duration: dotVisualAnimationDuration)) { // Smooth transition for dot scaling/opacity
                 currentDot = (currentDot + 1) % 3
             }
         }
