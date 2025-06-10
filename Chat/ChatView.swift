@@ -14,15 +14,14 @@ struct ChatView: View {
     ]
     @State private var animateGradient = false
 
-    // New: Emotion to Color Mapping and default color
-    static let emotionColorMapping: [String: Color] = [
-        "Yellow": .yellow,
-        "Blue": .blue,
-        "Red": .red,
-        "Purple": .purple,
-        "Green": .green
+    // Updated: Bipolar Emotion to Color Mapping
+    static let bipolarEmotionMapping: [String: (negativeColor: Color, positiveColor: Color)] = [
+        "Sadness_Joy": (negativeColor: .blue, positiveColor: .yellow),        // Sadness (-100) -> Joy (+100)
+        "Disgust_Trust": (negativeColor: .green, positiveColor: .blue),       // Disgust (-100) -> Trust (+100)
+        "Fear_Anger": (negativeColor: .purple, positiveColor: .red),          // Fear (-100) -> Anger (+100)
+        "Anticipation_Surprise": (negativeColor: .purple, positiveColor: .yellow) // Anticipation (-100) -> Surprise (+100)
     ]
-    static let defaultAuraColor: Color = Color.gray.opacity(0.3)
+    static let defaultAuraColor: Color = Color.gray.opacity(0.6)
 
     var body: some View {
         ZStack {
@@ -31,11 +30,11 @@ struct ChatView: View {
             VStack {
                 HStack {
                     Menu {
-                        /*
+                        ///*
                         Button("Get Emotional State") {
                             viewModel.requestEmotionDisplay()
                         }
-                        */
+                        //*/
                         
                         Button("Reset Auri", role: .destructive) {
                             showingResetConfirmation = true
@@ -133,7 +132,7 @@ struct ChatView: View {
             startRadius: 50,
             endRadius: 500
         )
-        .blur(radius: 60)
+        .blur(radius: 50)
         .animation(.easeInOut(duration: 5), value: animateGradient)
         .ignoresSafeArea()
     }
@@ -258,8 +257,77 @@ struct ChatView: View {
     }
 }
 
-// Updated private function to update gradient stops based on emotion magnitudes
+// Updated extension to handle bipolar emotion scales
 extension ChatView {
+    /// Maps a bipolar emotion value (-100 to +100) to a color between the negative and positive endpoints
+    private func colorForBipolarEmotion(key: String, value: Int) -> Color {
+        guard let mapping = Self.bipolarEmotionMapping[key] else {
+            return Self.defaultAuraColor
+        }
+        
+        // Clamp value to [-100, 100] range
+        let clampedValue = max(-100, min(100, value))
+        
+        // Convert to 0-1 range where 0 = negative extreme, 0.5 = neutral, 1 = positive extreme
+        let normalizedValue = Double(clampedValue + 100) / 200.0
+        
+        // Interpolate between negative and positive colors
+        return interpolateColor(
+            from: mapping.negativeColor,
+            to: mapping.positiveColor,
+            ratio: normalizedValue
+        )
+    }
+    
+    /// Interpolates between two colors based on a ratio (0.0 to 1.0) with enhanced saturation
+    private func interpolateColor(from startColor: Color, to endColor: Color, ratio: Double) -> Color {
+        let clampedRatio = max(0.0, min(1.0, ratio))
+        
+        // Convert SwiftUI Colors to UIColor to access RGB components
+        let startUIColor = UIColor(startColor)
+        let endUIColor = UIColor(endColor)
+        
+        var startRed: CGFloat = 0, startGreen: CGFloat = 0, startBlue: CGFloat = 0, startAlpha: CGFloat = 0
+        var endRed: CGFloat = 0, endGreen: CGFloat = 0, endBlue: CGFloat = 0, endAlpha: CGFloat = 0
+        
+        startUIColor.getRed(&startRed, green: &startGreen, blue: &startBlue, alpha: &startAlpha)
+        endUIColor.getRed(&endRed, green: &endGreen, blue: &endBlue, alpha: &endAlpha)
+        
+        let interpolatedRed = startRed + (endRed - startRed) * clampedRatio
+        let interpolatedGreen = startGreen + (endGreen - startGreen) * clampedRatio
+        let interpolatedBlue = startBlue + (endBlue - startBlue) * clampedRatio
+        let interpolatedAlpha = startAlpha + (endAlpha - startAlpha) * clampedRatio
+        
+        // Enhance saturation for better visibility
+        let enhancedColor = Color(
+            red: Double(interpolatedRed),
+            green: Double(interpolatedGreen),
+            blue: Double(interpolatedBlue),
+            opacity: Double(interpolatedAlpha)
+        )
+        
+        // Increase saturation by converting to HSB and boosting saturation
+        let uiColor = UIColor(enhancedColor)
+        var hue: CGFloat = 0, saturation: CGFloat = 0, brightness: CGFloat = 0, alpha: CGFloat = 0
+        uiColor.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+        
+        // Boost saturation for more vivid colors (especially important near neutral)
+        let boostedSaturation = min(1.0, saturation * 1.4 + 0.2)
+        let boostedBrightness = max(0.3, min(1.0, brightness * 1.1))
+        
+        return Color(
+            hue: Double(hue),
+            saturation: Double(boostedSaturation),
+            brightness: Double(boostedBrightness),
+            opacity: Double(alpha)
+        )
+    }
+    
+    /// Calculates the absolute intensity of an emotion (distance from neutral)
+    private func emotionIntensity(value: Int) -> Double {
+        return Double(abs(value)) / 100.0  // 0.0 to 1.0 scale
+    }
+    
     private func updateGradientStops(from emotions: [String: Int]?) {
         guard let emotions = emotions, !emotions.isEmpty else {
             self.gradientStops = [
@@ -269,11 +337,21 @@ extension ChatView {
             return
         }
 
-        let activeSortedEmotions = emotions
-            //.filter { $0.value >= 15 }
-            .sorted { $0.value > $1.value }
+        // Convert emotions to colors and intensities, using a lower threshold for inclusion
+        let emotionColorData: [(color: Color, intensity: Double)] = emotions.compactMap { (key, value) in
+            let intensity = emotionIntensity(value: value)
+            
+            // Lower threshold - include even very small emotions for visibility
+            guard intensity > 0.05 else { return nil }  // Reduced from 0.1 to 0.05
+            
+            let color = colorForBipolarEmotion(key: key, value: value)
+            return (color: color, intensity: intensity)
+        }
+        
+        // Sort by intensity (strongest emotions first)
+        let sortedEmotions = emotionColorData.sorted { $0.intensity > $1.intensity }
 
-        if activeSortedEmotions.isEmpty {
+        if sortedEmotions.isEmpty {
             self.gradientStops = [
                 Gradient.Stop(color: Self.defaultAuraColor, location: 0),
                 Gradient.Stop(color: Self.defaultAuraColor, location: 1)
@@ -281,17 +359,19 @@ extension ChatView {
             return
         }
 
-        if activeSortedEmotions.count == 1 {
-            let emotion = activeSortedEmotions[0]
-            let color = Self.emotionColorMapping[emotion.key] ?? Self.defaultAuraColor
+        if sortedEmotions.count == 1 {
+            let emotion = sortedEmotions[0]
+            // Increased base opacity and range for single emotion
+            let colorWithIntensity = emotion.color.opacity(0.6 + emotion.intensity * 0.4)
             self.gradientStops = [
-                Gradient.Stop(color: color, location: 0),
-                Gradient.Stop(color: color, location: 1)
+                Gradient.Stop(color: colorWithIntensity, location: 0),
+                Gradient.Stop(color: colorWithIntensity, location: 1)
             ]
             return
         }
 
-        let totalIntensity = CGFloat(activeSortedEmotions.reduce(0) { $0 + $1.value })
+        // For multiple emotions, create gradient based on intensity weights
+        let totalIntensity = sortedEmotions.reduce(0.0) { $0 + $1.intensity }
         guard totalIntensity > 0 else {
             self.gradientStops = [
                 Gradient.Stop(color: Self.defaultAuraColor, location: 0),
@@ -301,49 +381,44 @@ extension ChatView {
         }
 
         var newStops: [Gradient.Stop] = []
-        var cumulativeProportion: CGFloat = 0.0
+        var cumulativeProportion: Double = 0.0
 
-        for i in 0..<activeSortedEmotions.count {
-            let emotionEntry = activeSortedEmotions[i]
-            let color = Self.emotionColorMapping[emotionEntry.key] ?? Self.defaultAuraColor
+        for i in 0..<sortedEmotions.count {
+            let emotion = sortedEmotions[i]
+            // Increased base opacity and reduced intensity multiplier for more visible colors
+            let colorWithIntensity = emotion.color.opacity(0.7 + emotion.intensity * 0.3)
             
             if i == 0 {
-                // First emotion's color starts at location 0.0
-                newStops.append(Gradient.Stop(color: color, location: 0.0))
+                // First emotion starts at location 0.0
+                newStops.append(Gradient.Stop(color: colorWithIntensity, location: 0.0))
             }
             
-            let intensity = CGFloat(emotionEntry.value)
-            cumulativeProportion += intensity / totalIntensity
-            let locationForThisColorSegmentEnd = min(cumulativeProportion, 1.0) // Cap at 1.0
+            cumulativeProportion += emotion.intensity / totalIntensity
+            let location = min(cumulativeProportion, 1.0)
             
-            // Add a stop for the current emotion's color at the end of its proportional segment.
-            // This structure [Stop(C1,0), Stop(C1,L1), Stop(C2,L2), Stop(C3,L3=1)] creates:
-            // Solid C1 from 0-L1, then gradient C1->C2 from L1-L2, then C2->C3 from L2-L3.
-            newStops.append(Gradient.Stop(color: color, location: locationForThisColorSegmentEnd))
+            // Add stop for this emotion's segment end
+            newStops.append(Gradient.Stop(color: colorWithIntensity, location: location))
         }
 
-        // Cleanup: Remove truly duplicate consecutive stops (same color and same location).
-        // This can happen if an intensity is extremely small leading to no change in location after min().
+        // Remove duplicate consecutive stops
         if newStops.count > 1 {
             var uniqueStops: [Gradient.Stop] = [newStops[0]]
             for j in 1..<newStops.count {
-                let lastAddedStop = uniqueStops.last!
-                let currentStopToConsider = newStops[j]
-                if !(currentStopToConsider.color == lastAddedStop.color && currentStopToConsider.location == lastAddedStop.location) {
-                    uniqueStops.append(currentStopToConsider)
+                let lastStop = uniqueStops.last!
+                let currentStop = newStops[j]
+                if currentStop.location != lastStop.location {
+                    uniqueStops.append(currentStop)
                 }
             }
             newStops = uniqueStops
         }
         
-        // Ensure gradient is valid (at least two stops). This should be guaranteed by count == 1 case,
-        // but as a safeguard if newStops somehow ends up with one.
+        // Ensure we have at least two stops for a valid gradient
         if newStops.count == 1, let firstStop = newStops.first {
-             newStops.append(Gradient.Stop(color: firstStop.color, location: 1.0))
+            newStops.append(Gradient.Stop(color: firstStop.color, location: 1.0))
         }
 
-
-        self.gradientStops = newStops.isEmpty ? [ // Final safeguard
+        self.gradientStops = newStops.isEmpty ? [
             Gradient.Stop(color: Self.defaultAuraColor, location: 0),
             Gradient.Stop(color: Self.defaultAuraColor, location: 1)
         ] : newStops

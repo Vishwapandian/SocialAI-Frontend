@@ -236,8 +236,12 @@ class ChatViewModel: ObservableObject {
 
     func requestEmotionDisplay() {
         if let emotions = latestEmotions, !emotions.isEmpty {
-            let emotionStrings = emotions.map { "\($0.key): \($0.value)" }
-            emotionDisplayContent = "Current AI Emotions:\\n" + emotionStrings.joined(separator: "\\n")
+            let emotionStrings = emotions.map { emotion in
+                let (key, value) = emotion
+                let direction = value > 0 ? "+" : (value < 0 ? "" : "±")
+                return "\(key): \(direction)\(value)"
+            }
+            emotionDisplayContent = "Current AI Emotions (Bipolar Scale -100 to +100):\\n" + emotionStrings.joined(separator: "\\n")
         } else {
             emotionDisplayContent = "No emotional data available yet. Send a message to see the AI's emotional state."
         }
