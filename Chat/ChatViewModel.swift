@@ -22,6 +22,7 @@ class ChatViewModel: ObservableObject {
     @Published var aiMemory: String = ""
     @Published var currentEmotions: [String: Int] = [:]
     @Published var baseEmotions: [String: Int] = [:]
+    @Published var sensitivity: Int = 35  // Default - will be overwritten by loadConfiguration()
     @Published var isLoadingConfig: Bool = false
     @Published var configError: String? = nil
     
@@ -404,6 +405,7 @@ class ChatViewModel: ObservableObject {
                 self.aiMemory = config.memory
                 self.currentEmotions = config.emotions
                 self.baseEmotions = config.baseEmotions
+                self.sensitivity = config.sensitivity
             }
             .store(in: &cancellables)
     }
@@ -474,6 +476,40 @@ class ChatViewModel: ObservableObject {
                     let baseError = baseResponse.success ? "" : "Base emotions: \(baseResponse.message)"
                     let currentError = currentResponse.success ? "" : "Current emotions: \(currentResponse.message)"
                     self.configError = "Failed to update emotions. \(baseError) \(currentError)".trimmingCharacters(in: .whitespaces)
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    func updateSensitivity(_ newSensitivity: Int) {
+        guard let currentUserId = self.userId else {
+            configError = "Cannot update sensitivity: User not identified."
+            return
+        }
+        
+        // Validate sensitivity is between 0 and 100
+        guard 0...100 ~= newSensitivity else {
+            configError = "Sensitivity must be between 0 and 100. Current value: \(newSensitivity)"
+            return
+        }
+        
+        isLoadingConfig = true
+        configError = nil
+        
+        socialAIService.updateSensitivity(userId: currentUserId, sensitivity: newSensitivity)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                guard let self = self else { return }
+                self.isLoadingConfig = false
+                if case .failure(let error) = completion {
+                    self.configError = "Failed to update sensitivity: \(error.localizedDescription)"
+                }
+            } receiveValue: { [weak self] response in
+                guard let self = self else { return }
+                if response.success {
+                    self.sensitivity = newSensitivity
+                } else {
+                    self.configError = "Failed to update sensitivity: \(response.message)"
                 }
             }
             .store(in: &cancellables)

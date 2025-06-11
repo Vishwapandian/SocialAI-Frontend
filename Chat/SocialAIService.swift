@@ -12,6 +12,7 @@ class SocialAIService: ObservableObject {
     private let configMemoryURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/config/memory"
     private let configEmotionsURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/config/emotions"
     private let configBaseEmotionsURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/config/base-emotions"
+    private let configSensitivityURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/config/sensitivity"
     private let configAllURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/config/all"
 
     // Persist the current session ID across instances using UserDefaults
@@ -379,6 +380,55 @@ class SocialAIService: ObservableObject {
             .decode(type: SuccessResponse.self, decoder: JSONDecoder())
             .eraseToAnyPublisher()
     }
+    
+    // MARK: - Sensitivity Management
+    func getSensitivity(userId: String) -> AnyPublisher<SensitivityResponse, Error> {
+        print("[SocialAIService] getSensitivity for userId -> \(userId)")
+        
+        guard let url = URL(string: "\(configSensitivityURL)?userId=\(userId)") else {
+            return Fail(error: NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid sensitivity URL"])).eraseToAnyPublisher()
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .tryMap { data, response in
+                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                    let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error getting sensitivity"
+                    throw NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+                }
+                return data
+            }
+            .decode(type: SensitivityResponse.self, decoder: JSONDecoder())
+            .eraseToAnyPublisher()
+    }
+    
+    func updateSensitivity(userId: String, sensitivity: Int) -> AnyPublisher<SuccessResponse, Error> {
+        print("[SocialAIService] updateSensitivity for userId -> \(userId)")
+        
+        guard let url = URL(string: configSensitivityURL) else {
+            return Fail(error: NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid sensitivity URL"])).eraseToAnyPublisher()
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: Any] = ["userId": userId, "sensitivity": sensitivity]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .tryMap { data, response in
+                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                    let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error updating sensitivity"
+                    throw NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+                }
+                return data
+            }
+            .decode(type: SuccessResponse.self, decoder: JSONDecoder())
+            .eraseToAnyPublisher()
+    }
 }
 
 struct SocialAIResponse: Decodable {
@@ -409,6 +459,7 @@ struct ConfigurationResponse: Decodable {
     let memory: String
     let emotions: [String: Int]
     let baseEmotions: [String: Int]
+    let sensitivity: Int
     let userId: String
 }
 
@@ -427,6 +478,12 @@ struct EmotionsResponse: Decodable {
 // Struct for /api/config/base-emotions endpoint response  
 struct BaseEmotionsResponse: Decodable {
     let baseEmotions: [String: Int]
+    let userId: String
+}
+
+// Struct for /api/config/sensitivity endpoint response  
+struct SensitivityResponse: Decodable {
+    let sensitivity: Int
     let userId: String
 }
 

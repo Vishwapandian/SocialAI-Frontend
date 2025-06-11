@@ -11,6 +11,11 @@ struct SheetView: View {
     @State private var previewEmotions: [String: Int] = [:]
     @State private var animateGradient = false
     
+    // State variables for editing (always in edit mode now)
+    @State private var editedBaseEmotions: [String: Int] = [:]
+    @State private var editedSensitivity: Double = 0
+    @State private var editedMemory: String = ""
+    
     // Emotion to Color Mapping and default color (same as ChatView)
     static let emotionColorMapping: [String: Color] = [
         "Yellow": .yellow,
@@ -33,12 +38,9 @@ struct SheetView: View {
                         
                         EmotionsConfigSection(
                             viewModel: viewModel,
-                            onEditingStateChange: { isEditing, editedEmotions in
-                                if isEditing {
-                                    self.previewEmotions = editedEmotions
-                                } else {
-                                    self.previewEmotions = viewModel.baseEmotions
-                                }
+                            editedBaseEmotions: $editedBaseEmotions,
+                            onEmotionsChange: { newEmotions in
+                                self.previewEmotions = newEmotions
                                 animateGradient.toggle()
                             }
                         )
@@ -46,8 +48,13 @@ struct SheetView: View {
                     
                     Divider()
                     
+                    // Sensitivity Configuration Section
+                    SensitivityConfigSection(viewModel: viewModel, editedSensitivity: $editedSensitivity)
+                    
+                    Divider()
+                    
                     // Memory Configuration Section
-                    MemoryConfigSection(viewModel: viewModel)
+                    MemoryConfigSection(viewModel: viewModel, editedMemory: $editedMemory)
                     
                     Divider()
                     
@@ -76,16 +83,32 @@ struct SheetView: View {
             }
             .onAppear {
                 viewModel.loadConfiguration()
-                self.previewEmotions = viewModel.baseEmotions
-                animateGradient.toggle()
+                initializeEditingStates()
+            }
+            .onDisappear {
+                saveAllChanges()
             }
             .onChange(of: viewModel.baseEmotions) { newEmotions in
-                self.previewEmotions = newEmotions
-                animateGradient.toggle()
+                if editedBaseEmotions.isEmpty {
+                    editedBaseEmotions = newEmotions
+                    self.previewEmotions = newEmotions
+                    animateGradient.toggle()
+                }
+            }
+            .onChange(of: viewModel.sensitivity) { newSensitivity in
+                if editedSensitivity == 0 {
+                    editedSensitivity = Double(newSensitivity)
+                }
+            }
+            .onChange(of: viewModel.aiMemory) { newMemory in
+                if editedMemory.isEmpty {
+                    editedMemory = newMemory
+                }
             }
         .alert("Sign Out", isPresented: $showingSignOutConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button("Sign Out", role: .destructive) {
+                saveAllChanges()
                 auth.signOut()
                 dismiss()
             }
@@ -101,6 +124,50 @@ struct SheetView: View {
         } message: {
             Text("This will permanently delete all of Auri's memories and reset emotions to default values. This action cannot be undone.")
         }
+    }
+    
+    private func initializeEditingStates() {
+        editedBaseEmotions = viewModel.baseEmotions
+        editedSensitivity = Double(viewModel.sensitivity)
+        editedMemory = viewModel.aiMemory
+        previewEmotions = viewModel.baseEmotions
+        animateGradient.toggle()
+    }
+    
+    private func saveAllChanges() {
+        // Save emotions
+        let normalizedEmotions = normalizeEmotions(from: editedBaseEmotions)
+        viewModel.updateBaseEmotions(normalizedEmotions)
+        
+        // Save sensitivity
+        viewModel.updateSensitivity(Int(editedSensitivity))
+        
+        // Save memory
+        viewModel.updateMemory(editedMemory)
+    }
+    
+    // Normalizes arbitrary integer emotion values so that their total equals 100 while
+    // preserving the relative ratios the user set.
+    private func normalizeEmotions(from raw: [String: Int]) -> [String: Int] {
+        let total = raw.values.reduce(0, +)
+        guard total > 0 else { return raw }
+
+        var normalized: [String: Int] = [:]
+        var runningTotal = 0
+        let emotionOrder = ["Red", "Yellow", "Green", "Blue", "Purple"]
+
+        for (index, emotion) in emotionOrder.enumerated() {
+            if index == emotionOrder.count - 1 {
+                normalized[emotion] = 100 - runningTotal
+            } else {
+                let proportion = Double(raw[emotion] ?? 0) / Double(total)
+                let value = Int(proportion * 100)
+                normalized[emotion] = value
+                runningTotal += value
+            }
+        }
+
+        return normalized
     }
 }
 
@@ -215,57 +282,61 @@ struct EmotionAuraView: View {
     }
 }
 
-// MARK: - Memory Configuration Section
-struct MemoryConfigSection: View {
+// MARK: - Sensitivity Configuration Section
+struct SensitivityConfigSection: View {
     @ObservedObject var viewModel: ChatViewModel
-    @State private var editedMemory: String = ""
-    @State private var isEditing: Bool = false
+    @Binding var editedSensitivity: Double
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Auri's Memory")
-                    .font(.headline)
-                
-                Spacer()
-                
-                if isEditing {
-                    Button("Cancel") {
-                        editedMemory = viewModel.aiMemory
-                        isEditing = false
-                    }
-                    .foregroundColor(.secondary)
-                    
-                    Button("Save") {
-                        viewModel.updateMemory(editedMemory)
-                        isEditing = false
-                    }
-                    .disabled(viewModel.isLoadingConfig)
-                } else {
-                    Button("Edit") {
-                        editedMemory = viewModel.aiMemory
-                        isEditing = true
-                    }
-                    .disabled(viewModel.isLoadingConfig)
-                }
+            Text("Sensitivity")
+                .font(.headline)
+            
+            Text("This is how quickly and dramatically Auri's emotions change.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            Slider(
+                value: $editedSensitivity,
+                in: 0...100,
+                step: 1
+            )
+            .accentColor(.secondary)
+            
+            if let error = viewModel.configError {
+                Text(error)
+                    .foregroundColor(.red)
+                    .font(.caption)
             }
             
-            if isEditing {
-                TextEditor(text: $editedMemory)
-                    .padding(8)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(8)
-                    .frame(minHeight: 200)
-            } else {
-                ScrollView {
-                    Text(viewModel.aiMemory.isEmpty ? "No memory stored yet." : viewModel.aiMemory)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(8)
-                        .background(Color(.systemGray6))
-                        .cornerRadius(8)
-                        .frame(minHeight: 200)
+            if viewModel.isLoadingConfig {
+                HStack {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("Loading...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
             }
+        }
+    }
+}
+
+// MARK: - Memory Configuration Section
+struct MemoryConfigSection: View {
+    @ObservedObject var viewModel: ChatViewModel
+    @Binding var editedMemory: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Memory")
+                .font(.headline)
+            
+            TextEditor(text: $editedMemory)
+                .padding(8)
+                .background(Color(.systemGray6))
+                .cornerRadius(8)
+                .frame(minHeight: 200)
             
             if let error = viewModel.configError {
                 Text(error)
@@ -289,51 +360,19 @@ struct MemoryConfigSection: View {
 // MARK: - Emotions Configuration Section
 struct EmotionsConfigSection: View {
     @ObservedObject var viewModel: ChatViewModel
-    @State private var editedBaseEmotions: [String: Int] = [:]
-    @State private var isEditing: Bool = false
-    
-    let onEditingStateChange: (Bool, [String: Int]) -> Void
+    @Binding var editedBaseEmotions: [String: Int]
+    let onEmotionsChange: ([String: Int]) -> Void
     
     private let emotionOrder = ["Red", "Yellow", "Green", "Blue", "Purple"]
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Auri's Emotions")
-                    .font(.headline)
-                
-                Spacer()
-                
-                if isEditing {
-                    Button("Cancel") {
-                        editedBaseEmotions = viewModel.baseEmotions
-                        isEditing = false
-                        onEditingStateChange(false, viewModel.baseEmotions)
-                    }
-                    .foregroundColor(.secondary)
-                    
-                    Button("Save") {
-                        let normalized = normalizeEmotions(from: editedBaseEmotions)
-                        viewModel.updateBaseEmotions(normalized)
-                        isEditing = false
-                        onEditingStateChange(false, normalized)
-                    }
-                    .disabled(viewModel.isLoadingConfig || editedBaseEmotions.values.reduce(0, +) == 0)
-                } else {
-                    Button("Edit") {
-                        editedBaseEmotions = viewModel.baseEmotions
-                        isEditing = true
-                        onEditingStateChange(true, editedBaseEmotions)
-                    }
-                    .disabled(viewModel.isLoadingConfig)
-                }
-            }
+            Text("Emotions")
+                .font(.headline)
             
             Text("These are the emotional values Auri will naturally drift towards.")
                 .font(.caption)
                 .foregroundColor(.secondary)
-            
-            let emotions = isEditing ? editedBaseEmotions : viewModel.baseEmotions
             
             ForEach(emotionOrder, id: \.self) { emotion in
                 HStack {
@@ -341,23 +380,18 @@ struct EmotionsConfigSection: View {
                     EmotionAuraView(emotion: emotion)
                         .frame(width: 40, height: 40)
                     
-                    if isEditing {
-                        Slider(
-                            value: Binding(
-                                get: { Double(editedBaseEmotions[emotion] ?? 0) },
-                                set: { newValue in
-                                    editedBaseEmotions[emotion] = Int(newValue)
-                                    onEditingStateChange(true, editedBaseEmotions)
-                                }
-                            ),
-                            in: 0...100,
-                            step: 1
-                        )
-                        .accentColor(.secondary)
-                    } else {
-                        ProgressView(value: Double(emotions[emotion] ?? 0), total: 100)
-                            .accentColor(.secondary)
-                    }
+                    Slider(
+                        value: Binding(
+                            get: { Double(editedBaseEmotions[emotion] ?? 0) },
+                            set: { newValue in
+                                editedBaseEmotions[emotion] = Int(newValue)
+                                onEmotionsChange(editedBaseEmotions)
+                            }
+                        ),
+                        in: 0...100,
+                        step: 1
+                    )
+                    .accentColor(.secondary)
                 }
             }
             
@@ -378,29 +412,6 @@ struct EmotionsConfigSection: View {
             }
         }
     }
-    
-    // Normalizes arbitrary integer emotion values so that their total equals 100 while
-    // preserving the relative ratios the user set.
-    private func normalizeEmotions(from raw: [String: Int]) -> [String: Int] {
-        let total = raw.values.reduce(0, +)
-        guard total > 0 else { return raw } // fallback – shouldn't happen due to disabled Save
-
-        var normalized: [String: Int] = [:]
-        var runningTotal = 0
-
-        for (index, emotion) in emotionOrder.enumerated() {
-            if index == emotionOrder.count - 1 {
-                normalized[emotion] = 100 - runningTotal
-            } else {
-                let proportion = Double(raw[emotion] ?? 0) / Double(total)
-                let value = Int(proportion * 100)
-                normalized[emotion] = value
-                runningTotal += value
-            }
-        }
-
-        return normalized
-    }
 }
 
 #Preview {
@@ -420,6 +431,8 @@ struct EmotionsConfigSection: View {
         I am Auri, your AI companion. I remember that you enjoy discussing technology and creative projects. You've mentioned being interested in SwiftUI development and building intuitive user interfaces. I aim to be helpful, empathetic, and engaging in our conversations.
         """
         
+        mockViewModel.sensitivity = 65
+        
         return mockViewModel
     }())
     .environmentObject({
@@ -427,4 +440,3 @@ struct EmotionsConfigSection: View {
         return mockAuth
     }())
 } 
-
