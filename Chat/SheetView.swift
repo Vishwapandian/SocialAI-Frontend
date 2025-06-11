@@ -187,6 +187,34 @@ struct AuraPreviewView: View {
     }
 }
 
+// MARK: - Individual Emotion Aura
+struct EmotionAuraView: View {
+    let emotion: String
+    
+    private let emotionColorMapping = SheetView.emotionColorMapping
+    private let defaultAuraColor = SheetView.defaultAuraColor
+    
+    var body: some View {
+        let color = emotionColorMapping[emotion] ?? defaultAuraColor
+        
+        Circle()
+            .fill(
+                RadialGradient(
+                    gradient: Gradient(stops: [
+                        .init(color: color, location: 0.0),
+                        .init(color: color.opacity(0.8), location: 0.4),
+                        .init(color: color.opacity(0.2), location: 0.8),
+                        .init(color: .clear, location: 1.0)
+                    ]),
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: 20
+                )
+            )
+            .blur(radius: 8)
+    }
+}
+
 // MARK: - Memory Configuration Section
 struct MemoryConfigSection: View {
     @ObservedObject var viewModel: ChatViewModel
@@ -309,8 +337,9 @@ struct EmotionsConfigSection: View {
             
             ForEach(emotionOrder, id: \.self) { emotion in
                 HStack {
-                    Text(emotion)
-                        .frame(width: 60, alignment: .leading)
+                    // Small emotion aura preview
+                    EmotionAuraView(emotion: emotion)
+                        .frame(width: 40, height: 40)
                     
                     if isEditing {
                         Slider(
@@ -324,16 +353,10 @@ struct EmotionsConfigSection: View {
                             in: 0...100,
                             step: 1
                         )
-                        
-                        Text("\(editedBaseEmotions[emotion] ?? 0)")
-                            .frame(width: 30)
-                            .font(.caption)
+                        .accentColor(.secondary)
                     } else {
                         ProgressView(value: Double(emotions[emotion] ?? 0), total: 100)
-                        
-                        Text("\(emotions[emotion] ?? 0)")
-                            .frame(width: 30)
-                            .font(.caption)
+                            .accentColor(.secondary)
                     }
                 }
             }
@@ -354,10 +377,6 @@ struct EmotionsConfigSection: View {
                 }
             }
         }
-    }
-    
-    private var isValidEmotionSum: Bool {
-        true // Validation now handled on save
     }
     
     // Normalizes arbitrary integer emotion values so that their total equals 100 while
