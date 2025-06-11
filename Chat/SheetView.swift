@@ -230,7 +230,7 @@ struct AuraPreviewView: View {
             return Gradient(stops: [
                 .init(color: color, location: 0.0),
                 .init(color: color, location: 0.4),
-                .init(color: .clear, location: 1.0)
+                .init(color: color.opacity(0.0), location: 1.0)
             ])
         }
 
@@ -261,12 +261,18 @@ struct AuraPreviewView: View {
             stops.append(Gradient.Stop(color: color, location: min(location, coloredPortion)))
         }
         
-        // Add a smoother, hue-preserving fade-out instead of jumping to transparent black
+        // Add a smoother, hue-preserving fade-out. Instead of blending towards pure "clear"
+        // (which is effectively black with zero alpha and can create grey artefacts when
+        // blurred), we keep fading towards the same hue but with diminishing opacity.
         if let lastStop = stops.last {
             stops.append(.init(color: lastStop.color.opacity(0.4), location: 0.85))
+            // Preserve the hue at 0 % opacity so that the interpolation path never crosses
+            // through neutral grey.
             stops.append(.init(color: lastStop.color.opacity(0.0), location: 1.0))
         } else {
-            stops.append(.init(color: .clear, location: 1.0))
+            // Fallback – should never hit because we always have at least one stop, but keep
+            // behaviour consistent.
+            stops.append(.init(color: defaultAuraColor.opacity(0.0), location: 1.0))
         }
         
         // Cleanup duplicate stops to ensure a smooth gradient
