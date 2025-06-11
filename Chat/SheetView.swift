@@ -112,47 +112,78 @@ struct AuraPreviewView: View {
     private let defaultAuraColor = SheetView.defaultAuraColor
 
     var body: some View {
-        ZStack {
-            let activeEmotions = emotions.filter { $0.value > 0 }
+        RadialGradient(
+            gradient: createAuraGradient(),
+            center: .center,
+            startRadius: 0,
+            endRadius: 75
+        )
+        .blur(radius: 15)
+        .frame(width: 200, height: 200)
+    }
 
-            if activeEmotions.isEmpty {
-                let gradient = Gradient(stops: [
-                    .init(color: defaultAuraColor, location: 0.0),
-                    .init(color: defaultAuraColor, location: 0.3),
-                    .init(color: .clear, location: 1.0)
-                ])
-                RadialGradient(
-                    gradient: gradient,
-                    center: .center,
-                    startRadius: 0,
-                    endRadius: 20
-                )
-                .blur(radius: 10)
-            } else {
-                let sortedEmotions = activeEmotions.sorted { $0.key < $1.key }
-                
-                ForEach(sortedEmotions, id: \.key) { key, value in
-                    let color = emotionColorMapping[key] ?? defaultAuraColor
-                    let intensity = CGFloat(value) / 100.0
-                    
-                    let coreSize: CGFloat = 0.3
-                    let gradient = Gradient(stops: [
-                        .init(color: color, location: 0.0),
-                        .init(color: color, location: coreSize),
-                        .init(color: .clear, location: 1.0)
-                    ])
+    private func createAuraGradient() -> Gradient {
+        let activeSortedEmotions = emotions
+            .filter { $0.value > 0 }
+            .sorted { $0.value > $1.value }
 
-                    RadialGradient(
-                        gradient: gradient,
-                        center: .center,
-                        startRadius: 0,
-                        endRadius: 15 + 35 * intensity
-                    )
-                    .blur(radius: 15)
+        if activeSortedEmotions.isEmpty {
+            return Gradient(stops: [
+                .init(color: defaultAuraColor, location: 0.0),
+                .init(color: .clear, location: 1.0)
+            ])
+        }
+        
+        if activeSortedEmotions.count == 1, let emotion = activeSortedEmotions.first {
+            let color = emotionColorMapping[emotion.key] ?? defaultAuraColor
+            return Gradient(stops: [
+                .init(color: color, location: 0.0),
+                .init(color: color, location: 0.4),
+                .init(color: .clear, location: 1.0)
+            ])
+        }
+
+        let totalIntensity = CGFloat(activeSortedEmotions.reduce(0) { $0 + $1.value })
+        guard totalIntensity > 0 else {
+            return Gradient(stops: [
+                .init(color: defaultAuraColor, location: 0.0),
+                .init(color: .clear, location: 1.0)
+            ])
+        }
+
+        let coloredPortion: CGFloat = 0.9
+        var stops: [Gradient.Stop] = []
+        var cumulativeProportion: CGFloat = 0.0
+
+        for i in 0..<activeSortedEmotions.count {
+            let emotionEntry = activeSortedEmotions[i]
+            let color = emotionColorMapping[emotionEntry.key] ?? defaultAuraColor
+            
+            if i == 0 {
+                stops.append(Gradient.Stop(color: color, location: 0.0))
+            }
+            
+            let intensity = CGFloat(emotionEntry.value)
+            cumulativeProportion += intensity / totalIntensity
+            let location = cumulativeProportion * coloredPortion
+            
+            stops.append(Gradient.Stop(color: color, location: min(location, coloredPortion)))
+        }
+        
+        stops.append(.init(color: .clear, location: 1.0))
+        
+        // Cleanup duplicate stops to ensure a smooth gradient
+        if stops.count > 1 {
+            var uniqueStops: [Gradient.Stop] = [stops[0]]
+            for j in 1..<stops.count {
+                if !(uniqueStops.last!.color == stops[j].color && uniqueStops.last!.location == stops[j].location) {
+                    uniqueStops.append(stops[j])
                 }
             }
+            stops = uniqueStops
         }
-        .frame(width: 100, height: 100)
+
+        return Gradient(stops: stops)
     }
 }
 
@@ -165,7 +196,7 @@ struct MemoryConfigSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("AI Memory")
+                Text("Auri's Memory")
                     .font(.headline)
                 
                 Spacer()
@@ -240,7 +271,7 @@ struct EmotionsConfigSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("AI Emotions")
+                Text("Auri's Emotions")
                     .font(.headline)
                 
                 Spacer()
@@ -269,7 +300,7 @@ struct EmotionsConfigSection: View {
                 }
             }
             
-            Text("Set the emotional values for your AI. These will be used as both the current state and the homeostasis target.")
+            Text("These are the emotional values Auri will naturally drift towards.")
                 .font(.caption)
                 .foregroundColor(.secondary)
             
@@ -303,25 +334,6 @@ struct EmotionsConfigSection: View {
                         Text("\(emotions[emotion] ?? 0)")
                             .frame(width: 30)
                             .font(.caption)
-                    }
-                }
-            }
-            
-            if isEditing {
-                let total = editedBaseEmotions.values.reduce(0, +)
-                HStack {
-                    Text("Total: \(total)")
-                        .font(.caption)
-                        .foregroundColor(total == 100 ? .green : .red)
-                    
-                    Spacer()
-                    
-                    if total != 100 {
-                        Button("Normalize") {
-                            normalizeBaseEmotions()
-                            onEditingStateChange(true, editedBaseEmotions)
-                        }
-                        .font(.caption)
                     }
                 }
             }
@@ -376,11 +388,11 @@ struct EmotionsConfigSection: View {
         
         // Set up mock data for preview
         mockViewModel.baseEmotions = [
-            "Red": 20,
-            "Yellow": 25,
-            "Green": 15,
-            "Blue": 30,
-            "Purple": 10
+            "Red": 5,
+            "Yellow": 20,
+            "Green": 30,
+            "Blue": 40,
+            "Purple": 5
         ]
         
         mockViewModel.aiMemory = """
