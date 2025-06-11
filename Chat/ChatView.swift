@@ -34,7 +34,7 @@ struct ChatView: View {
                     Button {
                         showingSheet = true
                     } label: {
-                        Image(systemName: "line.3.horizontal.circle.fill")
+                        Image(systemName: "brain.fill")
                             .resizable()
                             .symbolRenderingMode(.palette)
                             .frame(width: 30, height: 30)

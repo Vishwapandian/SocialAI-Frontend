@@ -63,23 +63,32 @@ struct SheetView: View {
                         Button("Reset Auri", role: .destructive) {
                             showingResetConfirmation = true
                         }
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.red.opacity(0.1))
-                        .cornerRadius(10)
+                        .frame(maxWidth: .infinity, minHeight: 40, maxHeight: 40)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(.ultraThinMaterial)
+                        .foregroundColor(.red)
+                        .cornerRadius(12)
+                        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                         
                         Button("Sign Out") {
                             showingSignOutConfirmation = true
                         }
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(10)
+                        .frame(maxWidth: .infinity, minHeight: 40, maxHeight: 40)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(.ultraThinMaterial)
+                        .foregroundColor(.primary)
+                        .cornerRadius(12)
+                        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                     }
                     
                     Spacer(minLength: 20)
                 }
                 .padding()
+            }
+            .onTapGesture {
+                dismissKeyboard()
             }
             .onAppear {
                 viewModel.loadConfiguration()
@@ -124,6 +133,10 @@ struct SheetView: View {
         } message: {
             Text("This will permanently delete all of Auri's memories and reset emotions to default values. This action cannot be undone.")
         }
+    }
+    
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
     
     private func initializeEditingStates() {
@@ -333,9 +346,12 @@ struct MemoryConfigSection: View {
                 .font(.headline)
             
             TextEditor(text: $editedMemory)
-                .padding(8)
-                .background(Color(.systemGray6))
-                .cornerRadius(8)
+                .scrollContentBackground(.hidden)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial)
+                .cornerRadius(16)
+                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                 .frame(minHeight: 200)
             
             if let error = viewModel.configError {
