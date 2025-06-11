@@ -4,44 +4,87 @@ struct SheetView: View {
     @EnvironmentObject var auth: AuthViewModel
     @ObservedObject var viewModel: ChatViewModel
     @State private var showingSignOutConfirmation = false
-    @State private var selectedTab = 0
+    @State private var showingResetConfirmation = false
     @Environment(\.dismiss) private var dismiss
+    
+    // State variables for the aura gradient
+    @State private var gradientStops: [Gradient.Stop] = [
+        Gradient.Stop(color: Self.defaultAuraColor, location: 0),
+        Gradient.Stop(color: Self.defaultAuraColor, location: 1)
+    ]
+    @State private var animateGradient = false
+    
+    // Emotion to Color Mapping and default color (same as ChatView)
+    static let emotionColorMapping: [String: Color] = [
+        "Yellow": .yellow,
+        "Blue": .blue,
+        "Red": .red,
+        "Purple": .purple,
+        "Green": .green
+    ]
+    static let defaultAuraColor: Color = Color.gray.opacity(0.3)
     
     var body: some View {
         NavigationView {
-            TabView(selection: $selectedTab) {
-                // Quick Actions Tab
-                QuickActionsView(viewModel: viewModel, dismiss: dismiss)
-                    .tabItem {
-                        Image(systemName: "bolt.fill")
-                        Text("Quick")
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Memory Configuration Section
+                    MemoryConfigSection(viewModel: viewModel)
+                    
+                    Divider()
+                    
+                    // Emotions Configuration Section with Aura Preview
+                    VStack(spacing: 16) {
+                        EmotionsConfigSection(
+                            viewModel: viewModel,
+                            onEditingStateChange: { isEditing, editedEmotions in
+                                if isEditing {
+                                    updateGradientStops(from: editedEmotions)
+                                } else {
+                                    updateGradientStops(from: viewModel.baseEmotions)
+                                }
+                                animateGradient.toggle()
+                            }
+                        )
+                        
+                        // Small Aura Preview
+                        VStack(spacing: 8) {
+                            Text("Aura Preview")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            RadialGradient(
+                                gradient: Gradient(stops: gradientStops),
+                                center: .center,
+                                startRadius: 10,
+                                endRadius: 50
+                            )
+                            .blur(radius: 15)
+                            .animation(.easeInOut(duration: 3), value: animateGradient)
+                            .frame(width: 100, height: 100)
+                            .clipShape(Circle())
+                        }
                     }
-                    .tag(0)
-                
-                // Memory Configuration Tab
-                MemoryConfigView(viewModel: viewModel)
-                    .tabItem {
-                        Image(systemName: "brain.head.profile")
-                        Text("Memory")
+                    
+                    Divider()
+                    
+                    // Reset Section
+                    VStack(spacing: 16) {
+                        Button("Reset Auri", role: .destructive) {
+                            showingResetConfirmation = true
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.red.opacity(0.1))
+                        .cornerRadius(10)
                     }
-                    .tag(1)
-                
-                // Base Emotions Tab
-                BaseEmotionsView(viewModel: viewModel)
-                    .tabItem {
-                        Image(systemName: "heart.fill")
-                        Text("Emotions")
-                    }
-                    .tag(2)
+                    
+                    Spacer(minLength: 20)
+                }
+                .padding()
             }
-            .navigationTitle("AI Configuration")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Close") {
-                        dismiss()
-                    }
-                }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -56,6 +99,12 @@ struct SheetView: View {
             }
             .onAppear {
                 viewModel.loadConfiguration()
+                updateGradientStops(from: viewModel.baseEmotions)
+                animateGradient.toggle()
+            }
+            .onChange(of: viewModel.baseEmotions) { newEmotions in
+                updateGradientStops(from: newEmotions)
+                animateGradient.toggle()
             }
         }
         .alert("Sign Out", isPresented: $showingSignOutConfirmation) {
@@ -67,44 +116,102 @@ struct SheetView: View {
         } message: {
             Text("Are you sure you want to sign out?")
         }
-    }
-}
-
-// MARK: - Quick Actions Tab
-struct QuickActionsView: View {
-    @ObservedObject var viewModel: ChatViewModel
-    let dismiss: DismissAction
-    
-    var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
-            
-            Button("Get Emotional State") {
-                viewModel.requestEmotionDisplay()
-                dismiss()
-            }
-            .padding()
-            .frame(maxWidth: .infinity)
-            .background(Color.blue.opacity(0.1))
-            .cornerRadius(10)
-            
-            Button("Reset Auri", role: .destructive) {
+        .alert("Reset Auri", isPresented: $showingResetConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Reset", role: .destructive) {
                 viewModel.resetMemoryAndChat()
                 dismiss()
             }
-            .padding()
-            .frame(maxWidth: .infinity)
-            .background(Color.red.opacity(0.1))
-            .cornerRadius(10)
-            
-            Spacer()
+        } message: {
+            Text("This will permanently delete all of Auri's memories and reset emotions to default values. This action cannot be undone.")
         }
-        .padding()
     }
 }
 
-// MARK: - Memory Configuration Tab
-struct MemoryConfigView: View {
+// MARK: - Aura Gradient Logic
+extension SheetView {
+    private func updateGradientStops(from emotions: [String: Int]) {
+        guard !emotions.isEmpty else {
+            self.gradientStops = [
+                Gradient.Stop(color: Self.defaultAuraColor, location: 0),
+                Gradient.Stop(color: Self.defaultAuraColor, location: 1)
+            ]
+            return
+        }
+
+        let activeSortedEmotions = emotions
+            .sorted { $0.value > $1.value }
+
+        if activeSortedEmotions.isEmpty {
+            self.gradientStops = [
+                Gradient.Stop(color: Self.defaultAuraColor, location: 0),
+                Gradient.Stop(color: Self.defaultAuraColor, location: 1)
+            ]
+            return
+        }
+
+        if activeSortedEmotions.count == 1 {
+            let emotion = activeSortedEmotions[0]
+            let color = Self.emotionColorMapping[emotion.key] ?? Self.defaultAuraColor
+            self.gradientStops = [
+                Gradient.Stop(color: color, location: 0),
+                Gradient.Stop(color: color, location: 1)
+            ]
+            return
+        }
+
+        let totalIntensity = CGFloat(activeSortedEmotions.reduce(0) { $0 + $1.value })
+        guard totalIntensity > 0 else {
+            self.gradientStops = [
+                Gradient.Stop(color: Self.defaultAuraColor, location: 0),
+                Gradient.Stop(color: Self.defaultAuraColor, location: 1)
+            ]
+            return
+        }
+
+        var newStops: [Gradient.Stop] = []
+        var cumulativeProportion: CGFloat = 0.0
+
+        for i in 0..<activeSortedEmotions.count {
+            let emotionEntry = activeSortedEmotions[i]
+            let color = Self.emotionColorMapping[emotionEntry.key] ?? Self.defaultAuraColor
+            
+            if i == 0 {
+                newStops.append(Gradient.Stop(color: color, location: 0.0))
+            }
+            
+            let intensity = CGFloat(emotionEntry.value)
+            cumulativeProportion += intensity / totalIntensity
+            let locationForThisColorSegmentEnd = min(cumulativeProportion, 1.0)
+            
+            newStops.append(Gradient.Stop(color: color, location: locationForThisColorSegmentEnd))
+        }
+
+        if newStops.count > 1 {
+            var uniqueStops: [Gradient.Stop] = [newStops[0]]
+            for j in 1..<newStops.count {
+                let lastAddedStop = uniqueStops.last!
+                let currentStopToConsider = newStops[j]
+                if !(currentStopToConsider.color == lastAddedStop.color && currentStopToConsider.location == lastAddedStop.location) {
+                    uniqueStops.append(currentStopToConsider)
+                }
+            }
+            newStops = uniqueStops
+        }
+        
+        if newStops.count == 1, let firstStop = newStops.first {
+             newStops.append(Gradient.Stop(color: firstStop.color, location: 1.0))
+        }
+
+        self.gradientStops = newStops.isEmpty ? [
+            Gradient.Stop(color: Self.defaultAuraColor, location: 0),
+            Gradient.Stop(color: Self.defaultAuraColor, location: 1)
+        ] : newStops
+    }
+}
+
+// MARK: - Memory Configuration Section
+struct MemoryConfigSection: View {
     @ObservedObject var viewModel: ChatViewModel
     @State private var editedMemory: String = ""
     @State private var isEditing: Bool = false
@@ -170,18 +277,17 @@ struct MemoryConfigView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            
-            Spacer()
         }
-        .padding()
     }
 }
 
-// MARK: - Base Emotions Configuration Tab
-struct BaseEmotionsView: View {
+// MARK: - Emotions Configuration Section
+struct EmotionsConfigSection: View {
     @ObservedObject var viewModel: ChatViewModel
     @State private var editedBaseEmotions: [String: Int] = [:]
     @State private var isEditing: Bool = false
+    
+    let onEditingStateChange: (Bool, [String: Int]) -> Void
     
     private let emotionOrder = ["Red", "Yellow", "Green", "Blue", "Purple"]
     
@@ -197,18 +303,21 @@ struct BaseEmotionsView: View {
                     Button("Cancel") {
                         editedBaseEmotions = viewModel.baseEmotions
                         isEditing = false
+                        onEditingStateChange(false, viewModel.baseEmotions)
                     }
                     .foregroundColor(.secondary)
                     
                     Button("Save") {
                         viewModel.updateBaseEmotions(editedBaseEmotions)
                         isEditing = false
+                        onEditingStateChange(false, editedBaseEmotions)
                     }
                     .disabled(viewModel.isLoadingConfig || !isValidEmotionSum)
                 } else {
                     Button("Edit") {
                         editedBaseEmotions = viewModel.baseEmotions
                         isEditing = true
+                        onEditingStateChange(true, editedBaseEmotions)
                     }
                     .disabled(viewModel.isLoadingConfig)
                 }
@@ -232,6 +341,7 @@ struct BaseEmotionsView: View {
                                 set: { newValue in
                                     editedBaseEmotions[emotion] = Int(newValue)
                                     normalizeBaseEmotions()
+                                    onEditingStateChange(true, editedBaseEmotions)
                                 }
                             ),
                             in: 0...100,
@@ -263,6 +373,7 @@ struct BaseEmotionsView: View {
                     if total != 100 {
                         Button("Normalize") {
                             normalizeBaseEmotions()
+                            onEditingStateChange(true, editedBaseEmotions)
                         }
                         .font(.caption)
                     }
@@ -284,10 +395,7 @@ struct BaseEmotionsView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            
-            Spacer()
         }
-        .padding()
     }
     
     private var isValidEmotionSum: Bool {
