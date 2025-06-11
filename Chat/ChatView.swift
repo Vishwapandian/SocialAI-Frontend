@@ -4,6 +4,7 @@ struct ChatView: View {
     @ObservedObject var viewModel: ChatViewModel
     @State private var isInputFocused = false
     @State private var showingResetConfirmation = false
+    @State private var showingSheet = false
     @EnvironmentObject var auth: AuthViewModel
     @Environment(\.colorScheme) var colorScheme
 
@@ -30,20 +31,8 @@ struct ChatView: View {
             chatList
             VStack {
                 HStack {
-                    Menu {
-                        ///*
-                        Button("Get Emotional State") {
-                            viewModel.requestEmotionDisplay()
-                        }
-                        //*/
-                        
-                        Button("Reset Auri", role: .destructive) {
-                            showingResetConfirmation = true
-                        }
-                        
-                        Button("Sign Out", role: .destructive) {
-                            auth.signOut()
-                        }
+                    Button {
+                        showingSheet = true
                     } label: {
                         Image(systemName: "line.3.horizontal.circle.fill")
                             .resizable()
@@ -61,6 +50,10 @@ struct ChatView: View {
         .onTapGesture {
             // Dismiss keyboard/input focus when tapping background
             isInputFocused = false
+        }
+        .sheet(isPresented: $showingSheet) {
+            SheetView(viewModel: viewModel)
+                .environmentObject(auth)
         }
         .alert(isPresented: .init(
             get: { viewModel.error != nil },
@@ -83,14 +76,6 @@ struct ChatView: View {
             if let content = viewModel.emotionDisplayContent {
                 Text(content)
             }
-        }
-        .alert("Reset Auri", isPresented: $showingResetConfirmation) {
-            Button("Cancel", role: .cancel) { }
-            Button("Reset", role: .destructive) {
-                viewModel.resetMemoryAndChat()
-            }
-        } message: {
-            Text("Are you sure you want to reset all data? This will restore the Auri's memory to factory settings and cannot be undone.")
         }
         .onAppear {
             updateGradientStops(from: viewModel.latestEmotions)

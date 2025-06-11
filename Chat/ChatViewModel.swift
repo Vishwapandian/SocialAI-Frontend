@@ -18,6 +18,13 @@ class ChatViewModel: ObservableObject {
     @Published var messages: [Message] = []
     @Published var isAITyping: Bool = false // To show typing indicator
     
+    // Configuration state
+    @Published var aiMemory: String = ""
+    @Published var currentEmotions: [String: Int] = [:]
+    @Published var baseEmotions: [String: Int] = [:]
+    @Published var isLoadingConfig: Bool = false
+    @Published var configError: String? = nil
+    
     private let socialAIService = SocialAIService()
     private var cancellables = Set<AnyCancellable>()
     
@@ -371,5 +378,104 @@ class ChatViewModel: ObservableObject {
     func resumeEmotionPolling() {
         print("[ChatViewModel] Resuming emotion polling")
         startEmotionPolling()
+    }
+    
+    // MARK: - Configuration Management
+    
+    func loadConfiguration() {
+        guard let currentUserId = self.userId else {
+            configError = "Cannot load configuration: User not identified."
+            return
+        }
+        
+        isLoadingConfig = true
+        configError = nil
+        
+        socialAIService.getAllConfiguration(userId: currentUserId)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                guard let self = self else { return }
+                self.isLoadingConfig = false
+                if case .failure(let error) = completion {
+                    self.configError = "Failed to load configuration: \(error.localizedDescription)"
+                }
+            } receiveValue: { [weak self] config in
+                guard let self = self else { return }
+                self.aiMemory = config.memory
+                self.currentEmotions = config.emotions
+                self.baseEmotions = config.baseEmotions
+            }
+            .store(in: &cancellables)
+    }
+    
+    func updateMemory(_ newMemory: String) {
+        guard let currentUserId = self.userId else {
+            configError = "Cannot update memory: User not identified."
+            return
+        }
+        
+        isLoadingConfig = true
+        configError = nil
+        
+        socialAIService.updateMemory(userId: currentUserId, memory: newMemory)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                guard let self = self else { return }
+                self.isLoadingConfig = false
+                if case .failure(let error) = completion {
+                    self.configError = "Failed to update memory: \(error.localizedDescription)"
+                }
+            } receiveValue: { [weak self] response in
+                guard let self = self else { return }
+                if response.success {
+                    self.aiMemory = newMemory
+                } else {
+                    self.configError = "Failed to update memory: \(response.message)"
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    func updateBaseEmotions(_ newBaseEmotions: [String: Int]) {
+        guard let currentUserId = self.userId else {
+            configError = "Cannot update emotions: User not identified."
+            return
+        }
+        
+        // Validate emotions sum to 100
+        let total = newBaseEmotions.values.reduce(0, +)
+        guard total == 100 else {
+            configError = "Emotions must sum to 100. Current total: \(total)"
+            return
+        }
+        
+        isLoadingConfig = true
+        configError = nil
+        
+        // Update both base emotions and current emotions to the same value
+        let baseEmotionsPublisher = socialAIService.updateBaseEmotions(userId: currentUserId, baseEmotions: newBaseEmotions)
+        let currentEmotionsPublisher = socialAIService.updateCurrentEmotions(userId: currentUserId, emotions: newBaseEmotions)
+        
+        Publishers.Zip(baseEmotionsPublisher, currentEmotionsPublisher)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                guard let self = self else { return }
+                self.isLoadingConfig = false
+                if case .failure(let error) = completion {
+                    self.configError = "Failed to update emotions: \(error.localizedDescription)"
+                }
+            } receiveValue: { [weak self] (baseResponse, currentResponse) in
+                guard let self = self else { return }
+                if baseResponse.success && currentResponse.success {
+                    self.baseEmotions = newBaseEmotions
+                    self.currentEmotions = newBaseEmotions
+                    self.latestEmotions = newBaseEmotions // Update the display emotions too
+                } else {
+                    let baseError = baseResponse.success ? "" : "Base emotions: \(baseResponse.message)"
+                    let currentError = currentResponse.success ? "" : "Current emotions: \(currentResponse.message)"
+                    self.configError = "Failed to update emotions. \(baseError) \(currentError)".trimmingCharacters(in: .whitespaces)
+                }
+            }
+            .store(in: &cancellables)
     }
 }
