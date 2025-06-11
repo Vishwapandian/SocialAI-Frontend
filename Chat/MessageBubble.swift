@@ -65,13 +65,19 @@ struct TypingIndicator: View {
     @State private var timer: Timer?
     let latestEmotions: [String: Int]?
 
-    // Animation speed based on emotion intensity (higher intensity = faster typing)
-    private let baseSpeed: TimeInterval = 0.5  // Base speed for neutral emotions
-    private let minSpeed: TimeInterval = 0.15  // Fastest speed (high intensity)
-    private let maxSpeed: TimeInterval = 0.8   // Slowest speed (low intensity)
+    // Emotion to speed mapping (lower is faster)
+    private let emotionSpeedMapping: [String: TimeInterval] = [
+        "Red": 0.2,
+        "Yellow": 0.25,
+        "Purple": 0.3,
+        "Green": 0.35,
+        "Blue": 0.4
+    ]
+    private let defaultSpeed: TimeInterval = 0.4 // User's preferred default
 
     // Stores the currently active animation interval for the timer.
-    @State private var activeAnimationInterval: TimeInterval = 0.5
+    // Initialized with defaultSpeed, then updated by onAppear and onChange.
+    @State private var activeAnimationInterval: TimeInterval = 0.4 // Aligned with user's defaultSpeed
 
     var body: some View {
         HStack {
@@ -122,28 +128,14 @@ struct TypingIndicator: View {
         }
     }
 
-    /// Calculates overall emotional intensity from bipolar emotion values
-    private func calculateEmotionalIntensity(from emotions: [String: Int]?) -> Double {
-        guard let emotions = emotions, !emotions.isEmpty else { return 0.0 }
-        
-        // Calculate average absolute intensity across all emotions
-        let totalIntensity = emotions.values.reduce(0.0) { total, value in
-            total + Double(abs(value)) / 100.0  // Normalize to 0-1 scale
-        }
-        
-        return totalIntensity / Double(emotions.count)  // Average intensity
+    private func getDominantEmotion(from emotions: [String: Int]?) -> String? {
+        guard let emotions = emotions, !emotions.isEmpty else { return nil }
+        return emotions.max(by: { $0.value < $1.value })?.key
     }
 
     private func updateActiveInterval(basedOn emotions: [String: Int]?) {
-        let intensity = calculateEmotionalIntensity(from: emotions)
-        
-        // Higher intensity = faster typing (lower interval)
-        // Lower intensity = slower typing (higher interval)
-        // Interpolate between minSpeed and maxSpeed based on intensity
-        self.activeAnimationInterval = maxSpeed - (intensity * (maxSpeed - minSpeed))
-        
-        // Clamp to ensure we stay within bounds
-        self.activeAnimationInterval = max(minSpeed, min(maxSpeed, self.activeAnimationInterval))
+        let dominantEmotion = getDominantEmotion(from: emotions)
+        self.activeAnimationInterval = emotionSpeedMapping[dominantEmotion ?? ""] ?? defaultSpeed
     }
     
     private func restartDotAnimationTimer() {
@@ -166,10 +158,10 @@ struct TypingIndicator: View {
     VStack {
         MessageBubble(message: Message(content: "Hello, how can I help you today?", isFromUser: false))
         MessageBubble(message: Message(content: "I need help with SwiftUI", isFromUser: true))
-        TypingIndicator(latestEmotions: ["Sadness_Joy": 70, "Disgust_Trust": -30]) // High joy, some disgust
-        TypingIndicator(latestEmotions: ["Fear_Anger": 80, "Anticipation_Surprise": 0]) // High anger, neutral surprise
-        TypingIndicator(latestEmotions: ["Sadness_Joy": -50, "Fear_Anger": -80]) // Sadness and fear
-        TypingIndicator(latestEmotions: ["Anticipation_Surprise": 90]) // High surprise
-        TypingIndicator(latestEmotions: nil) // No emotions (should use base speed)
+        TypingIndicator(latestEmotions: ["Red": 70, "Blue": 30]) // Example with emotion
+        TypingIndicator(latestEmotions: ["Yellow": 80])
+        TypingIndicator(latestEmotions: ["Purple": 80])
+        TypingIndicator(latestEmotions: ["Green": 80])
+        TypingIndicator(latestEmotions: ["Blue": 80]) // Example with another emotion
     }
 }
