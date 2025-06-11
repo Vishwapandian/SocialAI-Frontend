@@ -285,11 +285,12 @@ struct EmotionsConfigSection: View {
                     .foregroundColor(.secondary)
                     
                     Button("Save") {
-                        viewModel.updateBaseEmotions(editedBaseEmotions)
+                        let normalized = normalizeEmotions(from: editedBaseEmotions)
+                        viewModel.updateBaseEmotions(normalized)
                         isEditing = false
-                        onEditingStateChange(false, editedBaseEmotions)
+                        onEditingStateChange(false, normalized)
                     }
-                    .disabled(viewModel.isLoadingConfig || !isValidEmotionSum)
+                    .disabled(viewModel.isLoadingConfig || editedBaseEmotions.values.reduce(0, +) == 0)
                 } else {
                     Button("Edit") {
                         editedBaseEmotions = viewModel.baseEmotions
@@ -317,7 +318,6 @@ struct EmotionsConfigSection: View {
                                 get: { Double(editedBaseEmotions[emotion] ?? 0) },
                                 set: { newValue in
                                     editedBaseEmotions[emotion] = Int(newValue)
-                                    normalizeBaseEmotions()
                                     onEditingStateChange(true, editedBaseEmotions)
                                 }
                             ),
@@ -357,28 +357,30 @@ struct EmotionsConfigSection: View {
     }
     
     private var isValidEmotionSum: Bool {
-        editedBaseEmotions.values.reduce(0, +) == 100
+        true // Validation now handled on save
     }
     
-    private func normalizeBaseEmotions() {
-        let total = editedBaseEmotions.values.reduce(0, +)
-        guard total > 0 else { return }
-        
+    // Normalizes arbitrary integer emotion values so that their total equals 100 while
+    // preserving the relative ratios the user set.
+    private func normalizeEmotions(from raw: [String: Int]) -> [String: Int] {
+        let total = raw.values.reduce(0, +)
+        guard total > 0 else { return raw } // fallback – shouldn't happen due to disabled Save
+
         var normalized: [String: Int] = [:]
         var runningTotal = 0
-        
+
         for (index, emotion) in emotionOrder.enumerated() {
             if index == emotionOrder.count - 1 {
-                // Last emotion gets the remainder to ensure total is exactly 100
                 normalized[emotion] = 100 - runningTotal
             } else {
-                let normalizedValue = Int(Double(editedBaseEmotions[emotion] ?? 0) / Double(total) * 100)
-                normalized[emotion] = normalizedValue
-                runningTotal += normalizedValue
+                let proportion = Double(raw[emotion] ?? 0) / Double(total)
+                let value = Int(proportion * 100)
+                normalized[emotion] = value
+                runningTotal += value
             }
         }
-        
-        editedBaseEmotions = normalized
+
+        return normalized
     }
 }
 
