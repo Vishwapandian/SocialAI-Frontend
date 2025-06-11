@@ -198,6 +198,7 @@ struct AuraPreviewView: View {
             startRadius: 0,
             endRadius: 75
         )
+        .compositingGroup()
         .blur(radius: 15)
         .frame(width: 200, height: 200)
     }
@@ -231,7 +232,7 @@ struct AuraPreviewView: View {
             ])
         }
 
-        let coloredPortion: CGFloat = 0.9
+        let coloredPortion: CGFloat = 0.7
         var stops: [Gradient.Stop] = []
         var cumulativeProportion: CGFloat = 0.0
 
@@ -250,7 +251,13 @@ struct AuraPreviewView: View {
             stops.append(Gradient.Stop(color: color, location: min(location, coloredPortion)))
         }
         
-        stops.append(.init(color: .clear, location: 1.0))
+        // Add a smoother, hue-preserving fade-out instead of jumping to transparent black
+        if let lastStop = stops.last {
+            stops.append(.init(color: lastStop.color.opacity(0.4), location: 0.85))
+            stops.append(.init(color: lastStop.color.opacity(0.0), location: 1.0))
+        } else {
+            stops.append(.init(color: .clear, location: 1.0))
+        }
         
         // Cleanup duplicate stops to ensure a smooth gradient
         if stops.count > 1 {
