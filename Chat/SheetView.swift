@@ -7,11 +7,8 @@ struct SheetView: View {
     @State private var showingResetConfirmation = false
     @Environment(\.dismiss) private var dismiss
     
-    // State variables for the aura gradient
-    @State private var gradientStops: [Gradient.Stop] = [
-        Gradient.Stop(color: Self.defaultAuraColor, location: 0),
-        Gradient.Stop(color: Self.defaultAuraColor, location: 1)
-    ]
+    // State variables for the aura
+    @State private var previewEmotions: [String: Int] = [:]
     @State private var animateGradient = false
     
     // Emotion to Color Mapping and default color (same as ChatView)
@@ -22,49 +19,35 @@ struct SheetView: View {
         "Purple": .purple,
         "Green": .green
     ]
-    static let defaultAuraColor: Color = Color.gray.opacity(0.3)
+    static let defaultAuraColor: Color = Color.gray
     
     var body: some View {
-        NavigationView {
-            ScrollView {
+        ScrollView {
                 VStack(spacing: 24) {
-                    // Memory Configuration Section
-                    MemoryConfigSection(viewModel: viewModel)
-                    
-                    Divider()
-                    
                     // Emotions Configuration Section with Aura Preview
                     VStack(spacing: 16) {
+                        
+                        // Small Aura Preview
+                        AuraPreviewView(emotions: previewEmotions)
+                            .animation(.easeInOut(duration: 3), value: animateGradient)
+                        
                         EmotionsConfigSection(
                             viewModel: viewModel,
                             onEditingStateChange: { isEditing, editedEmotions in
                                 if isEditing {
-                                    updateGradientStops(from: editedEmotions)
+                                    self.previewEmotions = editedEmotions
                                 } else {
-                                    updateGradientStops(from: viewModel.baseEmotions)
+                                    self.previewEmotions = viewModel.baseEmotions
                                 }
                                 animateGradient.toggle()
                             }
                         )
-                        
-                        // Small Aura Preview
-                        VStack(spacing: 8) {
-                            Text("Aura Preview")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            RadialGradient(
-                                gradient: Gradient(stops: gradientStops),
-                                center: .center,
-                                startRadius: 10,
-                                endRadius: 50
-                            )
-                            .blur(radius: 15)
-                            .animation(.easeInOut(duration: 3), value: animateGradient)
-                            .frame(width: 100, height: 100)
-                            .clipShape(Circle())
-                        }
                     }
+                    
+                    Divider()
+                    
+                    // Memory Configuration Section
+                    MemoryConfigSection(viewModel: viewModel)
                     
                     Divider()
                     
@@ -77,36 +60,29 @@ struct SheetView: View {
                         .frame(maxWidth: .infinity)
                         .background(Color.red.opacity(0.1))
                         .cornerRadius(10)
+                        
+                        Button("Sign Out") {
+                            showingSignOutConfirmation = true
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(10)
                     }
                     
                     Spacer(minLength: 20)
                 }
                 .padding()
             }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showingSignOutConfirmation = true
-                    } label: {
-                        Image(systemName: "person.circle.fill")
-                            .resizable()
-                            .frame(width: 28, height: 28)
-                            .foregroundColor(.primary)
-                    }
-                }
-            }
             .onAppear {
                 viewModel.loadConfiguration()
-                updateGradientStops(from: viewModel.baseEmotions)
+                self.previewEmotions = viewModel.baseEmotions
                 animateGradient.toggle()
             }
             .onChange(of: viewModel.baseEmotions) { newEmotions in
-                updateGradientStops(from: newEmotions)
+                self.previewEmotions = newEmotions
                 animateGradient.toggle()
             }
-        }
         .alert("Sign Out", isPresented: $showingSignOutConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button("Sign Out", role: .destructive) {
@@ -128,85 +104,55 @@ struct SheetView: View {
     }
 }
 
-// MARK: - Aura Gradient Logic
-extension SheetView {
-    private func updateGradientStops(from emotions: [String: Int]) {
-        guard !emotions.isEmpty else {
-            self.gradientStops = [
-                Gradient.Stop(color: Self.defaultAuraColor, location: 0),
-                Gradient.Stop(color: Self.defaultAuraColor, location: 1)
-            ]
-            return
-        }
+// MARK: - Aura Preview
+struct AuraPreviewView: View {
+    let emotions: [String: Int]
+    
+    private let emotionColorMapping = SheetView.emotionColorMapping
+    private let defaultAuraColor = SheetView.defaultAuraColor
 
-        let activeSortedEmotions = emotions
-            .sorted { $0.value > $1.value }
+    var body: some View {
+        ZStack {
+            let activeEmotions = emotions.filter { $0.value > 0 }
 
-        if activeSortedEmotions.isEmpty {
-            self.gradientStops = [
-                Gradient.Stop(color: Self.defaultAuraColor, location: 0),
-                Gradient.Stop(color: Self.defaultAuraColor, location: 1)
-            ]
-            return
-        }
+            if activeEmotions.isEmpty {
+                let gradient = Gradient(stops: [
+                    .init(color: defaultAuraColor, location: 0.0),
+                    .init(color: defaultAuraColor, location: 0.3),
+                    .init(color: .clear, location: 1.0)
+                ])
+                RadialGradient(
+                    gradient: gradient,
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: 20
+                )
+                .blur(radius: 10)
+            } else {
+                let sortedEmotions = activeEmotions.sorted { $0.key < $1.key }
+                
+                ForEach(sortedEmotions, id: \.key) { key, value in
+                    let color = emotionColorMapping[key] ?? defaultAuraColor
+                    let intensity = CGFloat(value) / 100.0
+                    
+                    let coreSize: CGFloat = 0.3
+                    let gradient = Gradient(stops: [
+                        .init(color: color, location: 0.0),
+                        .init(color: color, location: coreSize),
+                        .init(color: .clear, location: 1.0)
+                    ])
 
-        if activeSortedEmotions.count == 1 {
-            let emotion = activeSortedEmotions[0]
-            let color = Self.emotionColorMapping[emotion.key] ?? Self.defaultAuraColor
-            self.gradientStops = [
-                Gradient.Stop(color: color, location: 0),
-                Gradient.Stop(color: color, location: 1)
-            ]
-            return
-        }
-
-        let totalIntensity = CGFloat(activeSortedEmotions.reduce(0) { $0 + $1.value })
-        guard totalIntensity > 0 else {
-            self.gradientStops = [
-                Gradient.Stop(color: Self.defaultAuraColor, location: 0),
-                Gradient.Stop(color: Self.defaultAuraColor, location: 1)
-            ]
-            return
-        }
-
-        var newStops: [Gradient.Stop] = []
-        var cumulativeProportion: CGFloat = 0.0
-
-        for i in 0..<activeSortedEmotions.count {
-            let emotionEntry = activeSortedEmotions[i]
-            let color = Self.emotionColorMapping[emotionEntry.key] ?? Self.defaultAuraColor
-            
-            if i == 0 {
-                newStops.append(Gradient.Stop(color: color, location: 0.0))
-            }
-            
-            let intensity = CGFloat(emotionEntry.value)
-            cumulativeProportion += intensity / totalIntensity
-            let locationForThisColorSegmentEnd = min(cumulativeProportion, 1.0)
-            
-            newStops.append(Gradient.Stop(color: color, location: locationForThisColorSegmentEnd))
-        }
-
-        if newStops.count > 1 {
-            var uniqueStops: [Gradient.Stop] = [newStops[0]]
-            for j in 1..<newStops.count {
-                let lastAddedStop = uniqueStops.last!
-                let currentStopToConsider = newStops[j]
-                if !(currentStopToConsider.color == lastAddedStop.color && currentStopToConsider.location == lastAddedStop.location) {
-                    uniqueStops.append(currentStopToConsider)
+                    RadialGradient(
+                        gradient: gradient,
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: 15 + 35 * intensity
+                    )
+                    .blur(radius: 15)
                 }
             }
-            newStops = uniqueStops
         }
-        
-        if newStops.count == 1, let firstStop = newStops.first {
-             newStops.append(Gradient.Stop(color: firstStop.color, location: 1.0))
-        }
-
-        self.gradientStops = newStops.isEmpty ? [
-            Gradient.Stop(color: Self.defaultAuraColor, location: 0),
-            Gradient.Stop(color: Self.defaultAuraColor, location: 1)
-        ] : newStops
+        .frame(width: 100, height: 100)
     }
 }
 
@@ -422,4 +368,30 @@ struct EmotionsConfigSection: View {
         
         editedBaseEmotions = normalized
     }
+}
+
+#Preview {
+    SheetView(viewModel: {
+        let mockViewModel = ChatViewModel()
+        
+        // Set up mock data for preview
+        mockViewModel.baseEmotions = [
+            "Red": 20,
+            "Yellow": 25,
+            "Green": 15,
+            "Blue": 30,
+            "Purple": 10
+        ]
+        
+        mockViewModel.aiMemory = """
+        I am Auri, your AI companion. I remember that you enjoy discussing technology and creative projects. You've mentioned being interested in SwiftUI development and building intuitive user interfaces. I aim to be helpful, empathetic, and engaging in our conversations.
+        """
+        
+        return mockViewModel
+    }())
+    .environmentObject({
+        let mockAuth = AuthViewModel()
+        return mockAuth
+    }())
 } 
+
