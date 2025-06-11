@@ -16,6 +16,9 @@ struct SheetView: View {
     @State private var editedSensitivity: Double = 0
     @State private var editedMemory: String = ""
     
+    // Added flag to control whether edits should be auto-saved when the sheet disappears
+    @State private var skipSaveOnDismiss: Bool = false
+    
     // Emotion to Color Mapping and default color (same as ChatView)
     static let emotionColorMapping: [String: Color] = [
         "Yellow": .yellow,
@@ -95,7 +98,10 @@ struct SheetView: View {
                 initializeEditingStates()
             }
             .onDisappear {
-                saveAllChanges()
+                // Only persist changes if we haven't explicitly opted out (e.g. after Reset or Sign-Out)
+                if !skipSaveOnDismiss {
+                    saveAllChanges()
+                }
             }
             .onChange(of: viewModel.baseEmotions) { newEmotions in
                 if editedBaseEmotions.isEmpty {
@@ -117,7 +123,9 @@ struct SheetView: View {
         .alert("Sign Out", isPresented: $showingSignOutConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button("Sign Out", role: .destructive) {
+                // Save changes once, then skip the automatic save on dismiss
                 saveAllChanges()
+                skipSaveOnDismiss = true
                 auth.signOut()
                 dismiss()
             }
@@ -127,6 +135,8 @@ struct SheetView: View {
         .alert("Reset Auri", isPresented: $showingResetConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button("Reset", role: .destructive) {
+                // Skip automatic save to avoid overwriting the freshly reset data
+                skipSaveOnDismiss = true
                 viewModel.resetMemoryAndChat()
                 dismiss()
             }
