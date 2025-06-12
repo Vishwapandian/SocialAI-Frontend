@@ -67,26 +67,30 @@ struct SheetView: View {
                     
                     // Reset Section
                     VStack(spacing: 16) {
-                        Button("Reset Auri", role: .destructive) {
+                        Button(role: .destructive) {
                             showingResetConfirmation = true
+                        } label: {
+                            Text("Reset Auri")
+                                .frame(maxWidth: .infinity, minHeight: 40, maxHeight: 40)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(.ultraThinMaterial)
+                                .cornerRadius(12)
+                                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                         }
-                        .frame(maxWidth: .infinity, minHeight: 40, maxHeight: 40)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(12)
-                        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                         
-                        Button("Sign Out") {
+                        Button {
                             showingSignOutConfirmation = true
+                        } label: {
+                            Text("Sign Out")
+                                .frame(maxWidth: .infinity, minHeight: 40, maxHeight: 40)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(.ultraThinMaterial)
+                                .foregroundColor(.primary)
+                                .cornerRadius(12)
+                                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                         }
-                        .frame(maxWidth: .infinity, minHeight: 40, maxHeight: 40)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(.ultraThinMaterial)
-                        .foregroundColor(.primary)
-                        .cornerRadius(12)
-                        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                     }
                 }
                 .padding()

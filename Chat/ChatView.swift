@@ -36,9 +36,8 @@ struct ChatView: View {
                     } label: {
                         Image(systemName: "brain.fill")
                             .resizable()
-                            .symbolRenderingMode(.palette)
-                            .frame(width: 30, height: 30)
-                            .foregroundStyle(.white, .ultraThinMaterial)
+                            .frame(width: 30, height: 25)
+                            .foregroundStyle(.white.opacity(0.75))
                             .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                             .padding()
                     }
