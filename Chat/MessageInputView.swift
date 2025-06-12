@@ -12,7 +12,6 @@ struct MessageInputView: View {
             TextField("Talk with Auri", text: $message, axis: .vertical)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                //.background(Color.gray.opacity(0.2))  // Translucent gray background
                 .cornerRadius(20)
                 .lineLimit(1...5)
                 .focused($isFocusedInternal)

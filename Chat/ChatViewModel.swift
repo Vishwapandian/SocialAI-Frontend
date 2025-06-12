@@ -454,28 +454,21 @@ class ChatViewModel: ObservableObject {
         isLoadingConfig = true
         configError = nil
         
-        // Update both base emotions and current emotions to the same value
-        let baseEmotionsPublisher = socialAIService.updateBaseEmotions(userId: currentUserId, baseEmotions: newBaseEmotions)
-        let currentEmotionsPublisher = socialAIService.updateCurrentEmotions(userId: currentUserId, emotions: newBaseEmotions)
-        
-        Publishers.Zip(baseEmotionsPublisher, currentEmotionsPublisher)
+        // Update only base emotions, not current emotions
+        socialAIService.updateBaseEmotions(userId: currentUserId, baseEmotions: newBaseEmotions)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] completion in
                 guard let self = self else { return }
                 self.isLoadingConfig = false
                 if case .failure(let error) = completion {
-                    self.configError = "Failed to update emotions: \(error.localizedDescription)"
+                    self.configError = "Failed to update base emotions: \(error.localizedDescription)"
                 }
-            } receiveValue: { [weak self] (baseResponse, currentResponse) in
+            } receiveValue: { [weak self] response in
                 guard let self = self else { return }
-                if baseResponse.success && currentResponse.success {
+                if response.success {
                     self.baseEmotions = newBaseEmotions
-                    self.currentEmotions = newBaseEmotions
-                    self.latestEmotions = newBaseEmotions // Update the display emotions too
                 } else {
-                    let baseError = baseResponse.success ? "" : "Base emotions: \(baseResponse.message)"
-                    let currentError = currentResponse.success ? "" : "Current emotions: \(currentResponse.message)"
-                    self.configError = "Failed to update emotions. \(baseError) \(currentError)".trimmingCharacters(in: .whitespaces)
+                    self.configError = "Failed to update base emotions: \(response.message)"
                 }
             }
             .store(in: &cancellables)

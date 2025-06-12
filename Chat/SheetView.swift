@@ -6,6 +6,7 @@ struct SheetView: View {
     @State private var showingSignOutConfirmation = false
     @State private var showingResetConfirmation = false
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     
     // State variables for the aura
     @State private var previewEmotions: [String: Int] = [:]
@@ -19,6 +20,9 @@ struct SheetView: View {
     // Added flag to control whether edits should be auto-saved when the sheet disappears
     @State private var skipSaveOnDismiss: Bool = false
     
+    // State used to drive the first-open "rubber-band" slider animation
+    @State private var hasRunInitialSliderAnimation: Bool = false
+    
     // Emotion to Color Mapping and default color (same as ChatView)
     static let emotionColorMapping: [String: Color] = [
         "Yellow": .yellow,
@@ -27,7 +31,7 @@ struct SheetView: View {
         "Purple": .purple,
         "Green": .green
     ]
-    static let defaultAuraColor: Color = Color.gray
+    static let defaultAuraColor: Color = Color.clear
     
     var body: some View {
         ScrollView {
@@ -70,7 +74,6 @@ struct SheetView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                         .background(.ultraThinMaterial)
-                        .foregroundColor(.red)
                         .cornerRadius(12)
                         .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                         
@@ -85,17 +88,21 @@ struct SheetView: View {
                         .cornerRadius(12)
                         .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                     }
-                    
-                    Spacer(minLength: 20)
                 }
                 .padding()
             }
+            .background(
+                colorScheme == .light 
+                    ? Color(red: 240/255, green: 240/255, blue: 240/255)
+                    : Color.clear
+            )
             .onTapGesture {
                 dismissKeyboard()
             }
             .onAppear {
                 viewModel.loadConfiguration()
                 initializeEditingStates()
+                triggerInitialSliderAnimation()
             }
             .onDisappear {
                 // Only persist changes if we haven't explicitly opted out (e.g. after Reset or Sign-Out)
@@ -158,15 +165,22 @@ struct SheetView: View {
     }
     
     private func saveAllChanges() {
-        // Save emotions
+        // Only save emotions if they've changed
         let normalizedEmotions = normalizeEmotions(from: editedBaseEmotions)
-        viewModel.updateBaseEmotions(normalizedEmotions)
+        if normalizedEmotions != viewModel.baseEmotions {
+            viewModel.updateBaseEmotions(normalizedEmotions)
+        }
         
-        // Save sensitivity
-        viewModel.updateSensitivity(Int(editedSensitivity))
+        // Only save sensitivity if it's changed
+        let newSensitivity = Int(editedSensitivity)
+        if newSensitivity != viewModel.sensitivity {
+            viewModel.updateSensitivity(newSensitivity)
+        }
         
-        // Save memory
-        viewModel.updateMemory(editedMemory)
+        // Only save memory if it's changed
+        if editedMemory != viewModel.aiMemory {
+            viewModel.updateMemory(editedMemory)
+        }
     }
     
     // Normalizes arbitrary integer emotion values so that their total equals 100 while
@@ -191,6 +205,37 @@ struct SheetView: View {
         }
 
         return normalized
+    }
+    
+    // Adds a dramatic, spring-like animation to the sliders the first time the view appears.
+    private func triggerInitialSliderAnimation() {
+        // Ensure this runs only once per presentation
+        guard !hasRunInitialSliderAnimation else { return }
+        hasRunInitialSliderAnimation = true
+        
+        // Capture the user's configured values
+        let targetEmotions = editedBaseEmotions
+        let targetSensitivity = editedSensitivity
+        
+        // Start everything at zero
+        editedBaseEmotions = Dictionary(uniqueKeysWithValues: targetEmotions.map { ($0.key, 0) })
+        editedSensitivity = 0
+        previewEmotions = editedBaseEmotions
+        
+        // A noticeably slow, overshooting spring (~5 s). Adjust speed/params to fine-tune feel.
+        let longSpring = Animation
+            .interpolatingSpring(mass: 1, stiffness: 15, damping: 1.8, initialVelocity: 20)
+            .speed(0.01)
+        
+        // Animate to the target values after a slight delay, so the user sees an initial jolt
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation(longSpring) {
+                editedBaseEmotions = targetEmotions
+                editedSensitivity = targetSensitivity
+                previewEmotions = targetEmotions
+                animateGradient.toggle()
+            }
+        }
     }
 }
 
@@ -230,7 +275,7 @@ struct AuraPreviewView: View {
             return Gradient(stops: [
                 .init(color: color, location: 0.0),
                 .init(color: color, location: 0.4),
-                .init(color: color.opacity(0.0), location: 1.0)
+                .init(color: .clear, location: 1.0)
             ])
         }
 
@@ -261,18 +306,12 @@ struct AuraPreviewView: View {
             stops.append(Gradient.Stop(color: color, location: min(location, coloredPortion)))
         }
         
-        // Add a smoother, hue-preserving fade-out. Instead of blending towards pure "clear"
-        // (which is effectively black with zero alpha and can create grey artefacts when
-        // blurred), we keep fading towards the same hue but with diminishing opacity.
+        // Add a smoother, hue-preserving fade-out instead of jumping to transparent black
         if let lastStop = stops.last {
             stops.append(.init(color: lastStop.color.opacity(0.4), location: 0.85))
-            // Preserve the hue at 0 % opacity so that the interpolation path never crosses
-            // through neutral grey.
             stops.append(.init(color: lastStop.color.opacity(0.0), location: 1.0))
         } else {
-            // Fallback – should never hit because we always have at least one stop, but keep
-            // behaviour consistent.
-            stops.append(.init(color: defaultAuraColor.opacity(0.0), location: 1.0))
+            stops.append(.init(color: .clear, location: 1.0))
         }
         
         // Cleanup duplicate stops to ensure a smooth gradient
@@ -323,6 +362,9 @@ struct SensitivityConfigSection: View {
     @ObservedObject var viewModel: ChatViewModel
     @Binding var editedSensitivity: Double
     
+    // Slow spring used so the slider visibly overshoots then settles (≈5 s)
+    private let sliderSpring = Animation.interactiveSpring(response: 5, dampingFraction: 0.15, blendDuration: 0.1)
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Sensitivity")
@@ -338,6 +380,7 @@ struct SensitivityConfigSection: View {
                 step: 1
             )
             .accentColor(.secondary)
+            .animation(sliderSpring, value: editedSensitivity)
             
             if let error = viewModel.configError {
                 Text(error)
@@ -404,6 +447,9 @@ struct EmotionsConfigSection: View {
     
     private let emotionOrder = ["Red", "Yellow", "Green", "Blue", "Purple"]
     
+    // Slow spring used so the slider visibly overshoots then settles (≈5 s)
+    private let sliderSpring = Animation.interactiveSpring(response: 5, dampingFraction: 0.15, blendDuration: 0.1)
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Emotions")
@@ -431,6 +477,7 @@ struct EmotionsConfigSection: View {
                         step: 1
                     )
                     .accentColor(.secondary)
+                    .animation(sliderSpring, value: editedBaseEmotions[emotion] ?? 0)
                 }
             }
             
@@ -478,4 +525,4 @@ struct EmotionsConfigSection: View {
         let mockAuth = AuthViewModel()
         return mockAuth
     }())
-} 
+}
