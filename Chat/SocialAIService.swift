@@ -8,11 +8,11 @@ class SocialAIService: ObservableObject {
     private let emotionsURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/emotions"
     private let resetURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/reset"
     
-    // Configuration API URLs
-    private let configMemoryURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/config/memory"
+    // Configuration API URLs (memory-related URLs removed)
     private let configEmotionsURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/config/emotions"
     private let configBaseEmotionsURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/config/base-emotions"
     private let configSensitivityURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/config/sensitivity"
+    private let configCustomInstructionsURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/config/custom-instructions"
     private let configAllURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/config/all"
 
     // Persist the current session ID across instances using UserDefaults
@@ -234,55 +234,6 @@ class SocialAIService: ObservableObject {
             .eraseToAnyPublisher()
     }
     
-    // MARK: - Memory Management
-    func getMemory(userId: String) -> AnyPublisher<MemoryResponse, Error> {
-        print("[SocialAIService] getMemory for userId -> \(userId)")
-        
-        guard let url = URL(string: "\(configMemoryURL)?userId=\(userId)") else {
-            return Fail(error: NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid memory URL"])).eraseToAnyPublisher()
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        
-        return URLSession.shared.dataTaskPublisher(for: request)
-            .tryMap { data, response in
-                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                    let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error getting memory"
-                    throw NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: errorMessage])
-                }
-                return data
-            }
-            .decode(type: MemoryResponse.self, decoder: JSONDecoder())
-            .eraseToAnyPublisher()
-    }
-    
-    func updateMemory(userId: String, memory: String) -> AnyPublisher<SuccessResponse, Error> {
-        print("[SocialAIService] updateMemory for userId -> \(userId)")
-        
-        guard let url = URL(string: configMemoryURL) else {
-            return Fail(error: NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid memory URL"])).eraseToAnyPublisher()
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "PUT"
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let body: [String: Any] = ["userId": userId, "memory": memory]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        
-        return URLSession.shared.dataTaskPublisher(for: request)
-            .tryMap { data, response in
-                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                    let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error updating memory"
-                    throw NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: errorMessage])
-                }
-                return data
-            }
-            .decode(type: SuccessResponse.self, decoder: JSONDecoder())
-            .eraseToAnyPublisher()
-    }
-    
     // MARK: - Current Emotions Management
     func getCurrentEmotions(userId: String) -> AnyPublisher<EmotionsResponse, Error> {
         print("[SocialAIService] getCurrentEmotions for userId -> \(userId)")
@@ -429,6 +380,55 @@ class SocialAIService: ObservableObject {
             .decode(type: SuccessResponse.self, decoder: JSONDecoder())
             .eraseToAnyPublisher()
     }
+    
+    // MARK: - Custom Instructions Management
+    func getCustomInstructions(userId: String) -> AnyPublisher<CustomInstructionsResponse, Error> {
+        print("[SocialAIService] getCustomInstructions for userId -> \(userId)")
+        
+        guard let url = URL(string: "\(configCustomInstructionsURL)?userId=\(userId)") else {
+            return Fail(error: NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid custom instructions URL"])).eraseToAnyPublisher()
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .tryMap { data, response in
+                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                    let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error getting custom instructions"
+                    throw NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+                }
+                return data
+            }
+            .decode(type: CustomInstructionsResponse.self, decoder: JSONDecoder())
+            .eraseToAnyPublisher()
+    }
+    
+    func updateCustomInstructions(userId: String, customInstructions: String) -> AnyPublisher<SuccessResponse, Error> {
+        print("[SocialAIService] updateCustomInstructions for userId -> \(userId)")
+        
+        guard let url = URL(string: configCustomInstructionsURL) else {
+            return Fail(error: NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid custom instructions URL"])).eraseToAnyPublisher()
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: Any] = ["userId": userId, "customInstructions": customInstructions]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .tryMap { data, response in
+                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                    let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error updating custom instructions"
+                    throw NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+                }
+                return data
+            }
+            .decode(type: SuccessResponse.self, decoder: JSONDecoder())
+            .eraseToAnyPublisher()
+    }
 }
 
 struct SocialAIResponse: Decodable {
@@ -456,16 +456,10 @@ struct ResetResponse: Decodable {
 
 // Struct for /api/config/all endpoint response
 struct ConfigurationResponse: Decodable {
-    let memory: String
     let emotions: [String: Int]
     let baseEmotions: [String: Int]
     let sensitivity: Int
-    let userId: String
-}
-
-// Struct for /api/config/memory endpoint response
-struct MemoryResponse: Decodable {
-    let memory: String
+    let customInstructions: String
     let userId: String
 }
 
@@ -484,6 +478,12 @@ struct BaseEmotionsResponse: Decodable {
 // Struct for /api/config/sensitivity endpoint response  
 struct SensitivityResponse: Decodable {
     let sensitivity: Int
+    let userId: String
+}
+
+// Struct for /api/config/custom-instructions endpoint response  
+struct CustomInstructionsResponse: Decodable {
+    let customInstructions: String
     let userId: String
 }
 

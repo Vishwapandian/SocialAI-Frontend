@@ -19,7 +19,7 @@ class ChatViewModel: ObservableObject {
     @Published var isAITyping: Bool = false // To show typing indicator
     
     // Configuration state
-    @Published var aiMemory: String = ""
+    @Published var customInstructions: String = "N/A"
     @Published var currentEmotions: [String: Int] = [:]
     @Published var baseEmotions: [String: Int] = [:]
     @Published var sensitivity: Int = 35  // Default - will be overwritten by loadConfiguration()
@@ -402,38 +402,10 @@ class ChatViewModel: ObservableObject {
                 }
             } receiveValue: { [weak self] config in
                 guard let self = self else { return }
-                self.aiMemory = config.memory
                 self.currentEmotions = config.emotions
                 self.baseEmotions = config.baseEmotions
                 self.sensitivity = config.sensitivity
-            }
-            .store(in: &cancellables)
-    }
-    
-    func updateMemory(_ newMemory: String) {
-        guard let currentUserId = self.userId else {
-            configError = "Cannot update memory: User not identified."
-            return
-        }
-        
-        isLoadingConfig = true
-        configError = nil
-        
-        socialAIService.updateMemory(userId: currentUserId, memory: newMemory)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] completion in
-                guard let self = self else { return }
-                self.isLoadingConfig = false
-                if case .failure(let error) = completion {
-                    self.configError = "Failed to update memory: \(error.localizedDescription)"
-                }
-            } receiveValue: { [weak self] response in
-                guard let self = self else { return }
-                if response.success {
-                    self.aiMemory = newMemory
-                } else {
-                    self.configError = "Failed to update memory: \(response.message)"
-                }
+                self.customInstructions = config.customInstructions
             }
             .store(in: &cancellables)
     }
@@ -503,6 +475,34 @@ class ChatViewModel: ObservableObject {
                     self.sensitivity = newSensitivity
                 } else {
                     self.configError = "Failed to update sensitivity: \(response.message)"
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    func updateCustomInstructions(_ newInstructions: String) {
+        guard let currentUserId = self.userId else {
+            configError = "Cannot update custom instructions: User not identified."
+            return
+        }
+        
+        isLoadingConfig = true
+        configError = nil
+        
+        socialAIService.updateCustomInstructions(userId: currentUserId, customInstructions: newInstructions)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                guard let self = self else { return }
+                self.isLoadingConfig = false
+                if case .failure(let error) = completion {
+                    self.configError = "Failed to update custom instructions: \(error.localizedDescription)"
+                }
+            } receiveValue: { [weak self] response in
+                guard let self = self else { return }
+                if response.success {
+                    self.customInstructions = newInstructions
+                } else {
+                    self.configError = "Failed to update custom instructions: \(response.message)"
                 }
             }
             .store(in: &cancellables)

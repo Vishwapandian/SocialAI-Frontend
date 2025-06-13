@@ -15,7 +15,7 @@ struct SheetView: View {
     // State variables for editing (always in edit mode now)
     @State private var editedBaseEmotions: [String: Int] = [:]
     @State private var editedSensitivity: Double = 0
-    @State private var editedMemory: String = ""
+    @State private var editedCustomInstructions: String = "" // Editable field for future use
     
     // Added flag to control whether edits should be auto-saved when the sheet disappears
     @State private var skipSaveOnDismiss: Bool = false
@@ -60,8 +60,8 @@ struct SheetView: View {
                     
                     Divider()
                     
-                    // Memory Configuration Section
-                    MemoryConfigSection(viewModel: viewModel, editedMemory: $editedMemory)
+                    // Custom Instructions Configuration Section
+                    CustomInstructionsConfigSection(viewModel: viewModel, editedCustomInstructions: $editedCustomInstructions)
                     
                     Divider()
                     
@@ -126,9 +126,9 @@ struct SheetView: View {
                     editedSensitivity = Double(newSensitivity)
                 }
             }
-            .onChange(of: viewModel.aiMemory) { newMemory in
-                if editedMemory.isEmpty {
-                    editedMemory = newMemory
+            .onChange(of: viewModel.customInstructions) { newInstructions in
+                if editedCustomInstructions.isEmpty {
+                    editedCustomInstructions = newInstructions
                 }
             }
         .alert("Sign Out", isPresented: $showingSignOutConfirmation) {
@@ -163,7 +163,7 @@ struct SheetView: View {
     private func initializeEditingStates() {
         editedBaseEmotions = viewModel.baseEmotions
         editedSensitivity = Double(viewModel.sensitivity)
-        editedMemory = viewModel.aiMemory
+        editedCustomInstructions = viewModel.customInstructions
         previewEmotions = viewModel.baseEmotions
         animateGradient.toggle()
     }
@@ -181,9 +181,9 @@ struct SheetView: View {
             viewModel.updateSensitivity(newSensitivity)
         }
         
-        // Only save memory if it's changed
-        if editedMemory != viewModel.aiMemory {
-            viewModel.updateMemory(editedMemory)
+        // Save custom instructions if they've changed
+        if editedCustomInstructions != viewModel.customInstructions {
+            viewModel.updateCustomInstructions(editedCustomInstructions)
         }
     }
     
@@ -405,17 +405,21 @@ struct SensitivityConfigSection: View {
     }
 }
 
-// MARK: - Memory Configuration Section
-struct MemoryConfigSection: View {
+// MARK: - Custom Instructions Configuration Section
+struct CustomInstructionsConfigSection: View {
     @ObservedObject var viewModel: ChatViewModel
-    @Binding var editedMemory: String
+    @Binding var editedCustomInstructions: String
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Memory")
+            Text("Custom Instructions")
                 .font(.headline)
             
-            TextEditor(text: $editedMemory)
+            Text("Give Auri personalized instructions on how to behave, respond, or adapt to your preferences.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            TextEditor(text: $editedCustomInstructions)
                 .scrollContentBackground(.hidden)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
@@ -517,9 +521,7 @@ struct EmotionsConfigSection: View {
             "Purple": 5
         ]
         
-        mockViewModel.aiMemory = """
-        I am Auri, your AI companion. I remember that you enjoy discussing technology and creative projects. You've mentioned being interested in SwiftUI development and building intuitive user interfaces. I aim to be helpful, empathetic, and engaging in our conversations.
-        """
+        // Custom instructions are editable but show placeholder content
         
         mockViewModel.sensitivity = 65
         
