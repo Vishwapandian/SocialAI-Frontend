@@ -3,8 +3,7 @@ import SwiftUI
 struct EditView: View {
     @EnvironmentObject var auth: AuthViewModel
     @ObservedObject var viewModel: ChatViewModel
-    @State private var showingSignOutConfirmation = false
-    @State private var showingResetConfirmation = false
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     
@@ -17,8 +16,7 @@ struct EditView: View {
     @State private var editedSensitivity: Double = 0
     @State private var editedCustomInstructions: String = "" // Editable field for future use
     
-    // Added flag to control whether edits should be auto-saved when the sheet disappears
-    @State private var skipSaveOnDismiss: Bool = false
+
     
     // State used to drive the first-open "rubber-band" slider animation
     @State private var hasRunInitialSliderAnimation: Bool = false
@@ -63,35 +61,7 @@ struct EditView: View {
                     // Custom Instructions Configuration Section
                     CustomInstructionsConfigSection(viewModel: viewModel, editedCustomInstructions: $editedCustomInstructions)
                     
-                    Divider()
-                    
-                    // Reset Section
-                    VStack(spacing: 16) {
-                        Button(role: .destructive) {
-                            showingResetConfirmation = true
-                        } label: {
-                            Text("Reset Auri")
-                                .frame(maxWidth: .infinity, minHeight: 40, maxHeight: 40)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(.ultraThinMaterial)
-                                .cornerRadius(12)
-                                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
-                        }
-                        
-                        Button {
-                            showingSignOutConfirmation = true
-                        } label: {
-                            Text("Sign Out")
-                                .frame(maxWidth: .infinity, minHeight: 40, maxHeight: 40)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(.ultraThinMaterial)
-                                .foregroundColor(.primary)
-                                .cornerRadius(12)
-                                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
-                        }
-                    }
+
                 }
                 .padding()
             }
@@ -109,10 +79,7 @@ struct EditView: View {
                 triggerInitialSliderAnimation()
             }
             .onDisappear {
-                // Only persist changes if we haven't explicitly opted out (e.g. after Reset or Sign-Out)
-                if !skipSaveOnDismiss {
-                    saveAllChanges()
-                }
+                saveAllChanges()
             }
             .onChange(of: viewModel.baseEmotions) { newEmotions in
                 if editedBaseEmotions.isEmpty {
@@ -131,29 +98,7 @@ struct EditView: View {
                     editedCustomInstructions = newInstructions
                 }
             }
-        .alert("Sign Out", isPresented: $showingSignOutConfirmation) {
-            Button("Cancel", role: .cancel) { }
-            Button("Sign Out", role: .destructive) {
-                // Save changes once, then skip the automatic save on dismiss
-                saveAllChanges()
-                skipSaveOnDismiss = true
-                auth.signOut()
-                dismiss()
-            }
-        } message: {
-            Text("Are you sure you want to sign out?")
-        }
-        .alert("Reset Auri", isPresented: $showingResetConfirmation) {
-            Button("Cancel", role: .cancel) { }
-            Button("Reset", role: .destructive) {
-                // Skip automatic save to avoid overwriting the freshly reset data
-                skipSaveOnDismiss = true
-                viewModel.resetMemoryAndChat()
-                dismiss()
-            }
-        } message: {
-            Text("This will permanently delete all of Auri's memories and reset emotions to default values. This action cannot be undone.")
-        }
+
     }
     
     private func dismissKeyboard() {

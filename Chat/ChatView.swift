@@ -51,7 +51,7 @@ struct ChatView: View {
             isInputFocused = false
         }
         .sheet(isPresented: $showingSheet) {
-            EditView(viewModel: viewModel)
+            MyAIView(viewModel: viewModel)
                 .environmentObject(auth)
         }
         .alert(isPresented: .init(
