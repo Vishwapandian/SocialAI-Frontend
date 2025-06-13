@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct SheetView: View {
+struct EditView: View {
     @EnvironmentObject var auth: AuthViewModel
     @ObservedObject var viewModel: ChatViewModel
     @State private var showingSignOutConfirmation = false
@@ -247,8 +247,8 @@ struct SheetView: View {
 struct AuraPreviewView: View {
     let emotions: [String: Int]
     
-    private let emotionColorMapping = SheetView.emotionColorMapping
-    private let defaultAuraColor = SheetView.defaultAuraColor
+    private let emotionColorMapping = EditView.emotionColorMapping
+    private let defaultAuraColor = EditView.defaultAuraColor
 
     var body: some View {
         RadialGradient(
@@ -337,8 +337,8 @@ struct AuraPreviewView: View {
 struct EmotionAuraView: View {
     let emotion: String
     
-    private let emotionColorMapping = SheetView.emotionColorMapping
-    private let defaultAuraColor = SheetView.defaultAuraColor
+    private let emotionColorMapping = EditView.emotionColorMapping
+    private let defaultAuraColor = EditView.defaultAuraColor
     
     var body: some View {
         let color = emotionColorMapping[emotion] ?? defaultAuraColor
@@ -412,10 +412,10 @@ struct CustomInstructionsConfigSection: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Custom Instructions")
+            Text("Instructions")
                 .font(.headline)
             
-            Text("Give Auri personalized instructions on how to behave, respond, or adapt to your preferences.")
+            Text("This is what guides how Auri behaves and responds to you.")
                 .font(.caption)
                 .foregroundColor(.secondary)
             
@@ -509,7 +509,7 @@ struct EmotionsConfigSection: View {
 }
 
 #Preview {
-    SheetView(viewModel: {
+    EditView(viewModel: {
         let mockViewModel = ChatViewModel()
         
         // Set up mock data for preview
