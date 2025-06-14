@@ -257,20 +257,26 @@ struct EditView: View {
 // MARK: - Aura Preview
 struct AuraPreviewView: View {
     let emotions: [String: Int]
+    /// Desired square view dimension (both width and height). Defaults to the previous 200 × 200.
+    var size: CGFloat = 200
     
     private let emotionColorMapping = EditView.emotionColorMapping
     private let defaultAuraColor = EditView.defaultAuraColor
+
+    // Derived drawing metrics so that the view scales nicely down to small sizes.
+    private var endRadius: CGFloat { size * 0.375 }   // 75 when `size` = 200  ▸ maintains previous ratio
+    private var blurRadius: CGFloat { size * 0.075 }  // 15 when `size` = 200
 
     var body: some View {
         RadialGradient(
             gradient: createAuraGradient(),
             center: .center,
             startRadius: 0,
-            endRadius: 75
+            endRadius: endRadius
         )
         .compositingGroup()
-        .blur(radius: 15)
-        .frame(width: 200, height: 200)
+        .blur(radius: blurRadius)
+        .frame(width: size, height: size)
     }
 
     private func createAuraGradient() -> Gradient {

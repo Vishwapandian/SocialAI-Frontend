@@ -11,70 +11,41 @@ struct MyAIView: View {
     @Environment(\.colorScheme) private var colorScheme
     
     // State variables for the aura preview
-    @State private var animateGradient = false
-    
-    // Helper function to get dominant emotion color
-    private func getDominantEmotionColor(from emotions: [String: Int]) -> Color {
-        guard let dominantEmotion = emotions.max(by: { $0.value < $1.value })?.key else {
-            return Color.black.opacity(0.1)
-        }
-        
-        switch dominantEmotion {
-        case "Red":
-            return Color.red
-        case "Yellow":
-            return Color.yellow
-        case "Green":
-            return Color.green
-        case "Blue":
-            return Color.blue
-        case "Purple":
-            return Color.purple
-        default:
-            return Color.black.opacity(0.1)
-        }
-    }
+    //@State private var animateGradient = false
     
     var body: some View {
         ZStack {
             ScrollView {
-                VStack(spacing: 16) {
-                    ForEach(viewModel.personas, id: \.self) { persona in
+                LazyVStack(spacing: 12) {
+                    ForEach(viewModel.personas, id: \.id) { persona in
                         Button {
-                            self.personaToEdit = persona
-                            self.showingEditView = true
+                            personaToEdit = persona
+                            showingEditView = true
                         } label: {
-                            HStack(spacing: 24) {
-                                AuraPreviewView(emotions: persona.baseEmotions)
-                                    .animation(.easeInOut(duration: 3), value: animateGradient)
-                                    .frame(width: 44, height: 44)
-                                
-                                Spacer()
+                            HStack(spacing: 16) {
+                                AuraPreviewView(
+                                    emotions: persona.baseEmotions,
+                                    size: 60
+                                )
 
                                 Text(persona.name)
-                                    .font(.title3)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.primary)
-                                    .opacity(0.8)
+                                    .font(.headline)
 
+                                Spacer()
                             }
-                            .padding()
-                            .background(.ultraThinMaterial)
-                            .cornerRadius(16)
-                            .shadow(
-                                color: viewModel.selectedPersonaId == persona.id
-                                    ? getDominantEmotionColor(from: persona.baseEmotions).opacity(0.3)
-                                    : Color.black.opacity(0.1),
-                                radius: 5,
-                                x: 0,
-                                y: 0
+                            .padding(.vertical, 8)
+                            .padding(.horizontal)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(colorScheme == .light ? Color.white : Color(white: 0.12))
+                                    .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
                             )
                         }
                         .buttonStyle(PlainButtonStyle())
                     }
                 }
-                .padding(.horizontal, 24)
-                .padding(.top, 84) // To provide space for the buttons at the top (60 + 24)
+                .padding(.horizontal)
+                .padding(.top, 64)
             }
             .scrollIndicators(.hidden)
             
@@ -87,13 +58,12 @@ struct MyAIView: View {
                             self.showingEditView = true
                         }
                     } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .resizable()
-                            .symbolRenderingMode(.palette)
+                        Image(systemName: "plus")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.primary)
                             .frame(width: 30, height: 30)
-                            .foregroundStyle(.primary, .ultraThinMaterial)
+                            .background(.ultraThinMaterial, in: Circle())
                             .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
-                            //.padding()
                     }
                     
                     Spacer()
@@ -102,28 +72,21 @@ struct MyAIView: View {
                         Button(role: .destructive) {
                             showingResetConfirmation = true
                         } label: {
-                            HStack {
-                                Image(systemName: "arrow.counterclockwise")
-                                Text("Reset Auri")
-                            }
+                            Text("Reset Auri")
                         }
                         
                         Button {
                             showingSignOutConfirmation = true
                         } label: {
-                            HStack {
-                                Image(systemName: "person.fill.xmark")
-                                Text("Sign Out")
-                            }
+                            Text("Sign Out")
                         }
                     } label: {
-                        Image(systemName: "gearshape.circle.fill")
-                            .resizable()
-                            .symbolRenderingMode(.palette)
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.primary)
                             .frame(width: 30, height: 30)
-                            .foregroundStyle(.primary, .ultraThinMaterial)
+                            .background(.ultraThinMaterial, in: Circle())
                             .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
-                            //.padding()
                     }
                 }
                 .padding()
@@ -162,6 +125,7 @@ struct MyAIView: View {
         } message: {
             Text("This will permanently delete all of Auri's memories and reset emotions to default values. This action cannot be undone.")
         }
+        /*
         .onAppear {
             viewModel.loadPersonas()
             animateGradient.toggle()
@@ -169,6 +133,7 @@ struct MyAIView: View {
         .onChange(of: viewModel.latestEmotions) { _ in
             animateGradient.toggle()
         }
+        */
     }
 }
 
