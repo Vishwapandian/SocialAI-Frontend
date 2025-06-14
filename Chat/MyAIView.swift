@@ -38,47 +38,43 @@ struct MyAIView: View {
     var body: some View {
         ZStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 16) {
                     ForEach(viewModel.personas, id: \.self) { persona in
                         Button {
                             self.personaToEdit = persona
                             self.showingEditView = true
                         } label: {
-                            ZStack(alignment: .topTrailing) {
+                            HStack(spacing: 24) {
                                 AuraPreviewView(emotions: persona.baseEmotions)
                                     .animation(.easeInOut(duration: 3), value: animateGradient)
-                                    .frame(width: 200, height: 200)
-                                    .clipped()
-                                    .background(.ultraThinMaterial)
-                                    .cornerRadius(16)
-                                    .shadow(
-                                        color: viewModel.selectedPersonaId == persona.id 
-                                            ? getDominantEmotionColor(from: persona.baseEmotions).opacity(0.3)
-                                            : Color.black.opacity(0.1), 
-                                        radius: 5, 
-                                        x: 0, 
-                                        y: 0
-                                    )
+                                    .frame(width: 44, height: 44)
+                                
+                                Spacer()
 
-                                if viewModel.selectedPersonaId == persona.id {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
-                                        .padding(6)
-                                }
+                                Text(persona.name)
+                                    .font(.title3)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.primary)
+                                    .opacity(0.8)
+
                             }
+                            .padding()
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(16)
+                            .shadow(
+                                color: viewModel.selectedPersonaId == persona.id
+                                    ? getDominantEmotionColor(from: persona.baseEmotions).opacity(0.3)
+                                    : Color.black.opacity(0.1),
+                                radius: 5,
+                                x: 0,
+                                y: 0
+                            )
                         }
                         .buttonStyle(PlainButtonStyle())
-                        // Name label below the aura preview for clarity
-                        .overlay(alignment: .bottom) {
-                            Text(persona.name)
-                                .font(.caption)
-                                .foregroundColor(.primary)
-                                .padding(.bottom, 8)
-                        }
                     }
                 }
-                .padding()
-                .padding(.top, 60) // To provide space for the buttons at the top
+                .padding(.horizontal, 24)
+                .padding(.top, 84) // To provide space for the buttons at the top (60 + 24)
             }
             .scrollIndicators(.hidden)
             
@@ -91,11 +87,11 @@ struct MyAIView: View {
                             self.showingEditView = true
                         }
                     } label: {
-                        Image(systemName: "plus")
+                        Image(systemName: "plus.circle.fill")
                             .resizable()
+                            .symbolRenderingMode(.palette)
                             .frame(width: 30, height: 30)
-                            .foregroundColor(.primary)
-                            //.foregroundStyle(.ultraThinMaterial)
+                            .foregroundStyle(.primary, .ultraThinMaterial)
                             .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                             //.padding()
                     }
@@ -121,11 +117,11 @@ struct MyAIView: View {
                             }
                         }
                     } label: {
-                        Image(systemName: "gearshape.fill")
+                        Image(systemName: "gearshape.circle.fill")
                             .resizable()
+                            .symbolRenderingMode(.palette)
                             .frame(width: 30, height: 30)
-                            .foregroundColor(.primary)
-                            //.foregroundStyle(.ultraThinMaterial)
+                            .foregroundStyle(.primary, .ultraThinMaterial)
                             .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                             //.padding()
                     }
@@ -192,28 +188,28 @@ struct MyAIView: View {
         mockViewModel.personas = [
             SocialAIService.Persona(
                 id: "1",
-                name: "Calm",
+                name: "Gemini",
                 baseEmotions: ["Red": 5, "Yellow": 10, "Green": 60, "Blue": 20, "Purple": 5],
                 sensitivity: 30,
                 customInstructions: "Be calm and peaceful"
             ),
             SocialAIService.Persona(
                 id: "2", 
-                name: "Energetic",
+                name: "Taurus",
                 baseEmotions: ["Red": 25, "Yellow": 50, "Green": 10, "Blue": 10, "Purple": 5],
                 sensitivity: 80,
                 customInstructions: "Be energetic and enthusiastic"
             ),
             SocialAIService.Persona(
                 id: "3",
-                name: "Thoughtful", 
+                name: "Cancer",
                 baseEmotions: ["Red": 5, "Yellow": 15, "Green": 25, "Blue": 45, "Purple": 10],
                 sensitivity: 45,
                 customInstructions: "Be thoughtful and analytical"
             ),
             SocialAIService.Persona(
                 id: "4",
-                name: "Creative",
+                name: "Virgo",
                 baseEmotions: ["Red": 10, "Yellow": 20, "Green": 20, "Blue": 20, "Purple": 30],
                 sensitivity: 60,
                 customInstructions: "Be creative and imaginative"

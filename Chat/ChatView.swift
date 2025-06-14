@@ -34,10 +34,11 @@ struct ChatView: View {
                     Button {
                         showingSheet = true
                     } label: {
-                        Image(systemName: "brain.fill")
+                        Image(systemName: "microbe.circle.fill")
                             .resizable()
-                            .frame(width: 30, height: 25)
-                            .foregroundStyle(.white.opacity(0.75))
+                            .symbolRenderingMode(.palette)
+                            .frame(width: 30, height: 30)
+                            .foregroundStyle(.white, .ultraThinMaterial)
                             .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                             .padding()
                     }
