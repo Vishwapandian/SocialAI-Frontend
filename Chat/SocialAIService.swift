@@ -15,6 +15,9 @@ class SocialAIService: ObservableObject {
     private let configCustomInstructionsURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/config/custom-instructions"
     private let configAllURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/config/all"
 
+    // Personas API
+    private let personasURL = "https://social-ai-backend-f6dmr6763q-uc.a.run.app/api/personas"
+
     // Persist the current session ID across instances using UserDefaults
     private static var storedSessionId: String? {
         get { UserDefaults.standard.string(forKey: "SocialAIService.sessionId") }
@@ -31,6 +34,23 @@ class SocialAIService: ObservableObject {
 
     // Optionally inject userId if available
     var userId: String? = nil
+
+    // MARK: - Persona model
+
+    struct Persona: Codable, Identifiable, Hashable {
+        var id: String? // Firestore doc ID (optional on creation)
+        var name: String
+        var baseEmotions: [String: Int]
+        var sensitivity: Int
+        var customInstructions: String
+    }
+
+    // Simple success wrapper for delete/update etc.
+    struct PersonaWrapperResponse: Decodable {
+        let success: Bool?
+        let persona: Persona?
+        let personas: [Persona]?
+    }
 
     // MARK: - Init
     init() {
@@ -427,6 +447,124 @@ class SocialAIService: ObservableObject {
                 return data
             }
             .decode(type: SuccessResponse.self, decoder: JSONDecoder())
+            .eraseToAnyPublisher()
+    }
+
+    // MARK: - Personas CRUD
+
+    func fetchPersonas() -> AnyPublisher<[Persona], Error> {
+        guard let uid = userId, let url = URL(string: "\(personasURL)?userId=\(uid)") else {
+            return Fail(error: NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid personas URL"])).eraseToAnyPublisher()
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .tryMap { data, response in
+                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                    let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error fetching personas"
+                    throw NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+                }
+                return data
+            }
+            .decode(type: PersonaWrapperResponse.self, decoder: JSONDecoder())
+            .map { $0.personas ?? [] }
+            .eraseToAnyPublisher()
+    }
+
+    func createPersona(name: String = "New Persona") -> AnyPublisher<Persona, Error> {
+        guard let uid = userId, let url = URL(string: personasURL) else {
+            return Fail(error: NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid personas URL"])).eraseToAnyPublisher()
+        }
+
+        // Minimal default persona
+        let payload: [String: Any] = [
+            "userId": uid,
+            "name": name,
+            "baseEmotions": [
+                "Red": 5,
+                "Yellow": 20,
+                "Green": 30,
+                "Blue": 40,
+                "Purple": 5,
+            ],
+            "sensitivity": 35,
+            "customInstructions": "N/A"
+        ]
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
+
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .tryMap { data, response in
+                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 201 else {
+                    let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error creating persona"
+                    throw NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+                }
+                return data
+            }
+            .decode(type: PersonaWrapperResponse.self, decoder: JSONDecoder())
+            .tryMap { wrapper in
+                guard let persona = wrapper.persona else {
+                    throw NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Persona not returned"])
+                }
+                return persona
+            }
+            .eraseToAnyPublisher()
+    }
+
+    func updatePersona(_ persona: Persona) -> AnyPublisher<Persona, Error> {
+        guard let uid = userId, let id = persona.id, let url = URL(string: "\(personasURL)/\(id)?userId=\(uid)") else {
+            return Fail(error: NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid persona id"])).eraseToAnyPublisher()
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONEncoder().encode(persona)
+
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .tryMap { data, response in
+                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                    let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error updating persona"
+                    throw NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+                }
+                return data
+            }
+            .decode(type: PersonaWrapperResponse.self, decoder: JSONDecoder())
+            .tryMap { wrapper in
+                guard let persona = wrapper.persona else {
+                    throw NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Persona not returned"])
+                }
+                return persona
+            }
+            .eraseToAnyPublisher()
+    }
+
+    func deletePersona(personaId: String) -> AnyPublisher<Bool, Error> {
+        guard let uid = userId, let url = URL(string: "\(personasURL)/\(personaId)?userId=\(uid)") else {
+            return Fail(error: NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid personas URL"])).eraseToAnyPublisher()
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .tryMap { data, response in
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error deleting persona"
+                    throw NSError(domain: "SocialAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+                }
+                if httpResponse.statusCode == 200 {
+                    return true
+                } else {
+                    let errorMessage = String(data: data, encoding: .utf8) ?? "Failed to delete persona"
+                    throw NSError(domain: "SocialAIService", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+                }
+            }
             .eraseToAnyPublisher()
     }
 }

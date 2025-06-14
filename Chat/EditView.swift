@@ -3,6 +3,7 @@ import SwiftUI
 struct EditView: View {
     @EnvironmentObject var auth: AuthViewModel
     @ObservedObject var viewModel: ChatViewModel
+    var persona: SocialAIService.Persona? = nil // nil means editing user config
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -61,7 +62,32 @@ struct EditView: View {
                     // Custom Instructions Configuration Section
                     CustomInstructionsConfigSection(viewModel: viewModel, editedCustomInstructions: $editedCustomInstructions)
                     
-
+                    // Select/Delete Buttons if editing a persona
+                    if let persona = persona {
+                        HStack {
+                            Button(role: .destructive) {
+                                viewModel.deletePersona(personaId: persona.id ?? "") {
+                                    dismiss()
+                                }
+                            } label: {
+                                HStack {
+                                    Image(systemName: "trash")
+                                    Text("Delete")
+                                }
+                            }
+                            Spacer()
+                            Button {
+                                // Apply persona to user
+                                viewModel.applyPersona(persona)
+                                dismiss()
+                            } label: {
+                                HStack {
+                                    Image(systemName: "checkmark.circle")
+                                    Text("Select")
+                                }
+                            }
+                        }
+                    }
                 }
                 .padding()
             }
@@ -74,31 +100,60 @@ struct EditView: View {
                 dismissKeyboard()
             }
             .onAppear {
-                viewModel.loadConfiguration()
+                if persona == nil {
+                    viewModel.loadConfiguration()
+                }
                 initializeEditingStates()
                 triggerInitialSliderAnimation()
             }
             .onDisappear {
                 saveAllChanges()
             }
-            .onChange(of: viewModel.baseEmotions) { newEmotions in
-                if editedBaseEmotions.isEmpty {
-                    editedBaseEmotions = newEmotions
-                    self.previewEmotions = newEmotions
-                    animateGradient.toggle()
+            .onChange(of: editedBaseEmotions) { newEmotions in
+                if persona != nil {
+                    // Auto-save to persona
+                    guard var updatedPersona = self.persona else { return }
+                    updatedPersona.baseEmotions = normalizeEmotions(from: newEmotions)
+                    viewModel.updatePersona(updatedPersona)
                 }
             }
             .onChange(of: viewModel.sensitivity) { newSensitivity in
-                if editedSensitivity == 0 {
-                    editedSensitivity = Double(newSensitivity)
+                if persona == nil {
+                    if editedSensitivity == 0 {
+                        editedSensitivity = Double(newSensitivity)
+                    }
+                }
+            }
+            .onChange(of: editedSensitivity) { newValue in
+                if self.persona != nil {
+                    guard var updatedPersona = self.persona else { return }
+                    updatedPersona.sensitivity = Int(newValue)
+                    viewModel.updatePersona(updatedPersona)
+                }
+            }
+            .onChange(of: editedCustomInstructions) { newValue in
+                if self.persona != nil {
+                    guard var updatedPersona = self.persona else { return }
+                    updatedPersona.customInstructions = newValue
+                    viewModel.updatePersona(updatedPersona)
+                }
+            }
+            .onChange(of: viewModel.baseEmotions) { newEmotions in
+                if persona == nil {
+                    if editedBaseEmotions.isEmpty {
+                        editedBaseEmotions = newEmotions
+                        self.previewEmotions = newEmotions
+                        animateGradient.toggle()
+                    }
                 }
             }
             .onChange(of: viewModel.customInstructions) { newInstructions in
-                if editedCustomInstructions.isEmpty {
-                    editedCustomInstructions = newInstructions
+                if persona == nil {
+                    if editedCustomInstructions.isEmpty {
+                        editedCustomInstructions = newInstructions
+                    }
                 }
             }
-
     }
     
     private func dismissKeyboard() {
@@ -106,29 +161,40 @@ struct EditView: View {
     }
     
     private func initializeEditingStates() {
-        editedBaseEmotions = viewModel.baseEmotions
-        editedSensitivity = Double(viewModel.sensitivity)
-        editedCustomInstructions = viewModel.customInstructions
-        previewEmotions = viewModel.baseEmotions
+        if let persona = persona {
+            editedBaseEmotions = persona.baseEmotions
+            editedSensitivity = Double(persona.sensitivity)
+            editedCustomInstructions = persona.customInstructions
+            previewEmotions = persona.baseEmotions
+        } else {
+            editedBaseEmotions = viewModel.baseEmotions
+            editedSensitivity = Double(viewModel.sensitivity)
+            editedCustomInstructions = viewModel.customInstructions
+            previewEmotions = viewModel.baseEmotions
+        }
         animateGradient.toggle()
     }
     
     private func saveAllChanges() {
-        // Only save emotions if they've changed
-        let normalizedEmotions = normalizeEmotions(from: editedBaseEmotions)
-        if normalizedEmotions != viewModel.baseEmotions {
-            viewModel.updateBaseEmotions(normalizedEmotions)
-        }
-        
-        // Only save sensitivity if it's changed
-        let newSensitivity = Int(editedSensitivity)
-        if newSensitivity != viewModel.sensitivity {
-            viewModel.updateSensitivity(newSensitivity)
-        }
-        
-        // Save custom instructions if they've changed
-        if editedCustomInstructions != viewModel.customInstructions {
-            viewModel.updateCustomInstructions(editedCustomInstructions)
+        if var personaToSave = persona {
+            // Save updates to persona doc (do not apply)
+            personaToSave.baseEmotions = normalizeEmotions(from: editedBaseEmotions)
+            personaToSave.sensitivity = Int(editedSensitivity)
+            personaToSave.customInstructions = editedCustomInstructions
+            viewModel.updatePersona(personaToSave)
+        } else {
+            // Editing live config – previous behaviour
+            let normalizedEmotions = normalizeEmotions(from: editedBaseEmotions)
+            if normalizedEmotions != viewModel.baseEmotions {
+                viewModel.updateBaseEmotions(normalizedEmotions)
+            }
+            let newSensitivity = Int(editedSensitivity)
+            if newSensitivity != viewModel.sensitivity {
+                viewModel.updateSensitivity(newSensitivity)
+            }
+            if editedCustomInstructions != viewModel.customInstructions {
+                viewModel.updateCustomInstructions(editedCustomInstructions)
+            }
         }
     }
     

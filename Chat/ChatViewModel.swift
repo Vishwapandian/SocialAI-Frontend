@@ -26,6 +26,10 @@ class ChatViewModel: ObservableObject {
     @Published var isLoadingConfig: Bool = false
     @Published var configError: String? = nil
     
+    // Personas state
+    @Published var personas: [SocialAIService.Persona] = []
+    @Published var selectedPersonaId: String? = nil // Applied persona id
+    
     private let socialAIService = SocialAIService()
     private var cancellables = Set<AnyCancellable>()
     
@@ -64,6 +68,9 @@ class ChatViewModel: ObservableObject {
         // Initialize an empty chat
         self.messages = []
         startEmotionPolling() // Start polling for homeostasis updates (includes initial fetch)
+        
+        // Load personas list
+        loadPersonas()
     }
 
     func sendMessage() {
@@ -506,5 +513,87 @@ class ChatViewModel: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+    }
+
+    // MARK: - Personas CRUD
+
+    func loadPersonas() {
+        guard userId != nil else { return }
+        socialAIService.fetchPersonas()
+            .receive(on: DispatchQueue.main)
+            .sink { completion in
+                if case .failure(let err) = completion {
+                    print("[ChatViewModel] Failed to load personas: \(err.localizedDescription)")
+                }
+            } receiveValue: { [weak self] personas in
+                self?.personas = personas
+            }
+            .store(in: &cancellables)
+    }
+
+    func createPersona(named name: String = "New Persona", completion: ((SocialAIService.Persona) -> Void)? = nil) {
+        guard userId != nil else { return }
+        socialAIService.createPersona(name: name)
+            .receive(on: DispatchQueue.main)
+            .sink { completionSink in
+                if case .failure(let err) = completionSink {
+                    print("[ChatViewModel] Failed to create persona: \(err.localizedDescription)")
+                }
+            } receiveValue: { [weak self] persona in
+                self?.personas.append(persona)
+                completion?(persona)
+            }
+            .store(in: &cancellables)
+    }
+
+    func updatePersona(_ persona: SocialAIService.Persona) {
+        guard userId != nil else { return }
+        socialAIService.updatePersona(persona)
+            .receive(on: DispatchQueue.main)
+            .sink { completion in
+                if case .failure(let err) = completion {
+                    print("[ChatViewModel] Failed to update persona: \(err.localizedDescription)")
+                }
+            } receiveValue: { [weak self] updated in
+                guard let self = self else { return }
+                if let idx = self.personas.firstIndex(where: { $0.id == updated.id }) {
+                    self.personas[idx] = updated
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    func deletePersona(personaId: String, completion: (() -> Void)? = nil) {
+        guard userId != nil else { return }
+        socialAIService.deletePersona(personaId: personaId)
+            .receive(on: DispatchQueue.main)
+            .sink { completionSink in
+                if case .failure(let err) = completionSink {
+                    print("[ChatViewModel] Failed to delete persona: \(err.localizedDescription)")
+                }
+            } receiveValue: { [weak self] success in
+                guard success else { return }
+                self?.personas.removeAll { $0.id == personaId }
+                completion?()
+            }
+            .store(in: &cancellables)
+    }
+
+    // Apply persona values to user configuration endpoints
+    func applyPersona(_ persona: SocialAIService.Persona) {
+        guard let currentUserId = self.userId else {
+            configError = "Cannot apply persona: user not identified."
+            return
+        }
+
+        // Apply base emotions first
+        updateBaseEmotions(persona.baseEmotions)
+        // Then sensitivity
+        updateSensitivity(persona.sensitivity)
+        // Then custom instructions
+        updateCustomInstructions(persona.customInstructions)
+
+        // Save selection locally
+        selectedPersonaId = persona.id
     }
 }
