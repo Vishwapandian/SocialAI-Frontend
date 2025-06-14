@@ -17,44 +17,46 @@ struct MyAIView: View {
         ZStack {
             ScrollView {
                 LazyVGrid(columns: [
-                    GridItem(.adaptive(minimum: 120, maximum: 180), spacing: 12)
-                ], spacing: 12) {
+                    GridItem(.flexible(), spacing: 16),
+                    GridItem(.flexible())
+                ], spacing: 16) {
                     ForEach(viewModel.personas, id: \.id) { persona in
                         Button {
                             personaToEdit = persona
                             showingEditView = true
                         } label: {
                             VStack(spacing: 12) {
+                                Spacer()
                                 AuraPreviewView(
                                     emotions: persona.baseEmotions,
                                     size: 150
                                 )
-
+                                
                                 Text(persona.name)
                                     .font(.headline)
                                     .multilineTextAlignment(.center)
                                     .opacity(0.7)
-                            }
-                            .padding(.vertical, 16)
-                            .padding(.horizontal, 12)
-                            .background(
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .fill(outermostAuraColor(for: persona.baseEmotions).opacity(0.05)) // The rounded tint layer now matches aura edge color
+                                
+                                HStack {
+                                    Spacer()
                                 }
-                                /*
+                                
+                                Spacer()
+                            }
+                            //.padding(.vertical, 16)
+                            //.padding(.horizontal, 16)
+                            .background(
                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(.ultraThinMaterial) // Or .background(.ultraThinMaterial)
-                                    .background(Color.red.opacity(0.3))
-                                    .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
-                                 */
+                                    .fill(outermostAuraColor(for: persona.baseEmotions).opacity(0.05))
+                                    //.shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
                             )
                         }
                         .buttonStyle(PlainButtonStyle())
                     }
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 16)
                 .padding(.top, 64)
+                .padding(.bottom, 16)
             }
             .scrollIndicators(.hidden)
             
