@@ -16,35 +16,44 @@ struct MyAIView: View {
     var body: some View {
         ZStack {
             ScrollView {
-                LazyVStack(spacing: 12) {
+                LazyVGrid(columns: [
+                    GridItem(.adaptive(minimum: 120, maximum: 180), spacing: 12)
+                ], spacing: 12) {
                     ForEach(viewModel.personas, id: \.id) { persona in
                         Button {
                             personaToEdit = persona
                             showingEditView = true
                         } label: {
-                            HStack(spacing: 16) {
+                            VStack(spacing: 12) {
                                 AuraPreviewView(
                                     emotions: persona.baseEmotions,
-                                    size: 60
+                                    size: 150
                                 )
 
                                 Text(persona.name)
                                     .font(.headline)
-
-                                Spacer()
+                                    .multilineTextAlignment(.center)
+                                    .opacity(0.7)
                             }
-                            .padding(.vertical, 8)
-                            .padding(.horizontal)
+                            .padding(.vertical, 16)
+                            .padding(.horizontal, 12)
                             .background(
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(outermostAuraColor(for: persona.baseEmotions).opacity(0.05)) // The rounded tint layer now matches aura edge color
+                                }
+                                /*
                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(colorScheme == .light ? Color.white : Color(white: 0.12))
+                                    .fill(.ultraThinMaterial) // Or .background(.ultraThinMaterial)
+                                    .background(Color.red.opacity(0.3))
                                     .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+                                 */
                             )
                         }
                         .buttonStyle(PlainButtonStyle())
                     }
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 12)
                 .padding(.top, 64)
             }
             .scrollIndicators(.hidden)
@@ -135,6 +144,20 @@ struct MyAIView: View {
         }
         */
     }
+    
+    private func outermostAuraColor(for emotions: [String: Int]) -> Color {
+        // Filter out emotions with zero intensity
+        let active = emotions.filter { $0.value > 0 }
+
+        // If there are no active emotions fall back to the default aura color
+        guard !active.isEmpty else { return EditView.defaultAuraColor }
+
+        // Emotions are sorted descending in `AuraPreviewView` – the last one is the least intense
+        let leastIntenseEmotion = active.sorted { $0.value > $1.value }.last!
+
+        // Map the emotion name to its display color
+        return EditView.emotionColorMapping[leastIntenseEmotion.key] ?? EditView.defaultAuraColor
+    }
 }
 
 #Preview {
@@ -187,4 +210,4 @@ struct MyAIView: View {
         let mockAuth = AuthViewModel()
         return mockAuth
     }())
-} 
+}
