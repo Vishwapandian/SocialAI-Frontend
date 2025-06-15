@@ -10,9 +10,6 @@ struct MyAIView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     
-    // State variables for the aura preview
-    //@State private var animateGradient = false
-    
     var body: some View {
         ZStack {
             ScrollView {
@@ -43,12 +40,9 @@ struct MyAIView: View {
                                 
                                 Spacer()
                             }
-                            //.padding(.vertical, 16)
-                            //.padding(.horizontal, 16)
                             .background(
                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                                     .fill(outermostAuraColor(for: persona.baseEmotions).opacity(0.05))
-                                    //.shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
                             )
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -57,6 +51,7 @@ struct MyAIView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 64)
                 .padding(.bottom, 16)
+                .animation(.easeInOut, value: viewModel.personas)
             }
             .scrollIndicators(.hidden)
             
@@ -136,15 +131,6 @@ struct MyAIView: View {
         } message: {
             Text("This will permanently delete all of Auri's memories and reset emotions to default values. This action cannot be undone.")
         }
-        /*
-        .onAppear {
-            viewModel.loadPersonas()
-            animateGradient.toggle()
-        }
-        .onChange(of: viewModel.latestEmotions) { _ in
-            animateGradient.toggle()
-        }
-        */
     }
     
     private func outermostAuraColor(for emotions: [String: Int]) -> Color {

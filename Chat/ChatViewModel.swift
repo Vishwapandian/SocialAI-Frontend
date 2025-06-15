@@ -526,7 +526,11 @@ class ChatViewModel: ObservableObject {
                     print("[ChatViewModel] Failed to load personas: \(err.localizedDescription)")
                 }
             } receiveValue: { [weak self] personas in
-                self?.personas = personas
+                guard let self = self else { return }
+                let sorted = personas.sorted(by: ChatViewModel.sortByRecent)
+                withAnimation {
+                    self.personas = sorted
+                }
             }
             .store(in: &cancellables)
     }
@@ -540,8 +544,13 @@ class ChatViewModel: ObservableObject {
                     print("[ChatViewModel] Failed to create persona: \(err.localizedDescription)")
                 }
             } receiveValue: { [weak self] persona in
-                self?.personas.append(persona)
-                completion?(persona)
+                if let self = self {
+                    withAnimation {
+                        self.personas.append(persona)
+                        self.personas.sort(by: ChatViewModel.sortByRecent)
+                    }
+                    completion?(persona)
+                }
             }
             .store(in: &cancellables)
     }
@@ -558,6 +567,10 @@ class ChatViewModel: ObservableObject {
                 guard let self = self else { return }
                 if let idx = self.personas.firstIndex(where: { $0.id == updated.id }) {
                     self.personas[idx] = updated
+                }
+                // Resort list to ensure most recently used stays on top
+                withAnimation {
+                    self.personas.sort(by: ChatViewModel.sortByRecent)
                 }
             }
             .store(in: &cancellables)
@@ -593,7 +606,26 @@ class ChatViewModel: ObservableObject {
         // Then custom instructions
         updateCustomInstructions(persona.customInstructions)
 
+        // Mark persona as last used (update timestamp)
+        var updatedPersona = persona
+        let isoString = ISO8601DateFormatter().string(from: Date())
+        updatedPersona.lastUsed = isoString
+        updatePersona(updatedPersona)
+
         // Save selection locally
         selectedPersonaId = persona.id
+
+        // Resort personas list locally as well
+        withAnimation {
+            personas.sort(by: ChatViewModel.sortByRecent)
+        }
+    }
+
+    // Helper static for sorting personas by lastUsed desc
+    private static func sortByRecent(_ p1: SocialAIService.Persona, _ p2: SocialAIService.Persona) -> Bool {
+        let formatter = ISO8601DateFormatter()
+        let d1 = p1.lastUsed.flatMap { formatter.date(from: $0) } ?? Date.distantPast
+        let d2 = p2.lastUsed.flatMap { formatter.date(from: $0) } ?? Date.distantPast
+        return d1 > d2
     }
 }

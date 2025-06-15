@@ -43,6 +43,7 @@ class SocialAIService: ObservableObject {
         var baseEmotions: [String: Int]
         var sensitivity: Int
         var customInstructions: String
+        var lastUsed: String? = nil // ISO8601 timestamp of when persona was last applied
     }
 
     // Simple success wrapper for delete/update etc.
