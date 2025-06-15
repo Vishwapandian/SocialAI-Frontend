@@ -126,7 +126,7 @@ struct MyAIView: View {
             Button("Cancel", role: .cancel) { }
             Button("Reset", role: .destructive) {
                 viewModel.resetMemoryAndChat()
-                dismiss()
+                //dismiss()
             }
         } message: {
             Text("This will permanently delete all of Auri's memories and reset emotions to default values. This action cannot be undone.")

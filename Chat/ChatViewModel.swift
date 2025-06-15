@@ -290,6 +290,9 @@ class ChatViewModel: ObservableObject {
                     
                     // Restart emotion polling to get fresh emotions (should be empty/default after reset)
                     self.startEmotionPolling()
+                    
+                    // Refetch personas to get the new default set
+                    self.loadPersonas()
                 } else {
                     self.error = "Reset failed: \(resetResponse.message)"
                 }
