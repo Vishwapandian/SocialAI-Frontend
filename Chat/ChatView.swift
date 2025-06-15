@@ -4,7 +4,6 @@ struct ChatView: View {
     @ObservedObject var viewModel: ChatViewModel
     @State private var isInputFocused = false
     @State private var showingResetConfirmation = false
-    @State private var showingSheet = false
     @EnvironmentObject var auth: AuthViewModel
     @Environment(\.colorScheme) var colorScheme
 
@@ -25,6 +24,9 @@ struct ChatView: View {
     ]
     static let defaultAuraColor: Color = Color.gray.opacity(0.3)
 
+    // Callback that lets a parent view control the presentation of `MyAIView`.
+    var openMyAI: () -> Void = {}
+
     var body: some View {
         ZStack {
             auraBackground
@@ -32,7 +34,8 @@ struct ChatView: View {
             VStack {
                 HStack {
                     Button {
-                        showingSheet = true
+                        // Delegate the action to the parent container.
+                        openMyAI()
                     } label: {
                         Image(systemName: "microbe.fill")
                             .font(.system(size: 16, weight: .bold))
@@ -50,10 +53,6 @@ struct ChatView: View {
         .onTapGesture {
             // Dismiss keyboard/input focus when tapping background
             isInputFocused = false
-        }
-        .sheet(isPresented: $showingSheet) {
-            MyAIView(viewModel: viewModel)
-                .environmentObject(auth)
         }
         .alert(isPresented: .init(
             get: { viewModel.error != nil },

@@ -350,6 +350,31 @@ struct AuraPreviewView: View {
     }
 }
 
+// MARK: - Gray Aura Preview
+struct GrayAuraView: View {
+    var size: CGFloat = 200
+
+    private var endRadius: CGFloat { size * 0.375 }
+    private var blurRadius: CGFloat { size * 0.075 }
+
+    var body: some View {
+        RadialGradient(
+            gradient: Gradient(stops: [
+                .init(color: .gray, location: 0.0),
+                .init(color: .gray, location: 0.4),
+                .init(color: .clear, location: 1.0)
+            ]),
+            center: .center,
+            startRadius: 0,
+            endRadius: endRadius
+        )
+        .compositingGroup()
+        .blur(radius: blurRadius)
+        .frame(width: size, height: size)
+    }
+}
+
+
 // MARK: - Individual Emotion Aura
 struct EmotionAuraView: View {
     let emotion: String
