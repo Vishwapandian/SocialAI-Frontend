@@ -22,28 +22,43 @@ struct MyAIView: View {
                             personaToEdit = persona
                             showingEditView = true
                         } label: {
-                            VStack(spacing: 12) {
-                                Spacer()
-                                AuraPreviewView(
-                                    emotions: persona.baseEmotions,
-                                    size: 150
-                                )
-                                
-                                Text(persona.name)
-                                    .font(.headline)
-                                    .multilineTextAlignment(.center)
-                                    .opacity(0.7)
-                                
-                                HStack {
+                            ZStack {
+                                VStack {
+                                    Spacer()
+
+                                    HStack {
+                                        Spacer()
+                                    }
+                                }
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(outermostAuraColor(for: persona.baseEmotions).opacity(0.05))
+                                    )
+                                VStack(spacing: 12) {
+                                    Spacer()
+                                    
+                                    AuraPreviewView(
+                                        emotions: persona.baseEmotions,
+                                        size: 150
+                                    )
+                                    
+                                    Text(persona.name)
+                                        .font(.headline)
+                                        .multilineTextAlignment(.center)
+                                        .opacity(0.75)
+                                    
+                                    HStack {
+                                        Spacer()
+                                    }
+                                    
                                     Spacer()
                                 }
-                                
-                                Spacer()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(.ultraThinMaterial)
+                                        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
+                                )
                             }
-                            .background(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(outermostAuraColor(for: persona.baseEmotions).opacity(0.05))
-                            )
                         }
                         .buttonStyle(PlainButtonStyle())
                     }
