@@ -20,7 +20,6 @@ class ChatViewModel: ObservableObject {
     
     // Configuration state
     @Published var customInstructions: String = "N/A"
-    @Published var currentEmotions: [String: Int] = [:]
     @Published var baseEmotions: [String: Int] = [:]
     @Published var sensitivity: Int = 35  // Default - will be overwritten by loadConfiguration()
     @Published var isLoadingConfig: Bool = false
@@ -249,15 +248,6 @@ class ChatViewModel: ObservableObject {
         isAITyping = false
     }
 
-    func requestEmotionDisplay() {
-        if let emotions = latestEmotions, !emotions.isEmpty {
-            let emotionStrings = emotions.map { "\($0.key): \($0.value)" }
-            emotionDisplayContent = "Current AI Emotions:\\n" + emotionStrings.joined(separator: "\\n")
-        } else {
-            emotionDisplayContent = "No emotional data available yet. Send a message to see the AI's emotional state."
-        }
-    }
-
     func resetMemoryAndChat() {
         guard let currentUserId = self.userId else {
             self.error = "Cannot reset: User not identified."
@@ -412,7 +402,6 @@ class ChatViewModel: ObservableObject {
                 }
             } receiveValue: { [weak self] config in
                 guard let self = self else { return }
-                self.currentEmotions = config.emotions
                 self.baseEmotions = config.baseEmotions
                 self.sensitivity = config.sensitivity
                 self.customInstructions = config.customInstructions

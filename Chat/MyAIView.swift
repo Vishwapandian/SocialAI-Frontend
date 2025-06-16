@@ -38,11 +38,13 @@ struct MyAIView: View {
                                         Spacer()
                                     }
                                     .padding()
+                                    /*
                                     .background(
                                         RoundedRectangle(cornerRadius: 16, style: .continuous)
                                             .fill(.ultraThinMaterial)
                                     )
                                     .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
+                                    */
                                 }
                                 .buttonStyle(PlainButtonStyle())
                                 ForEach(viewModel.personas, id: \.id) { persona in
@@ -67,15 +69,25 @@ struct MyAIView: View {
                                             Spacer()
                                         }
                                         .padding()
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                                .fill(.ultraThinMaterial)
-                                        )
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                                .fill(outermostAuraColor(for: persona.baseEmotions).opacity(0.05))
-                                        )
-                                        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
+                                        .if(viewModel.selectedPersonaId == persona.id) { view in
+                                            view
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                                        .fill(.ultraThinMaterial)
+                                                )
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                                        .fill(outermostAuraColor(for: persona.baseEmotions).opacity(0.05))
+                                                )
+                                                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
+                                        }
+                                        .if(viewModel.selectedPersonaId != persona.id) { view in
+                                            view
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                                        .foregroundColor(.clear)
+                                                )
+                                        }
                                     }
                                     .buttonStyle(PlainButtonStyle())
                                 }
@@ -90,7 +102,6 @@ struct MyAIView: View {
                         // MARK: - Overlay Buttons
                         VStack {
                             HStack {
-                                Spacer()
                                 
                                 Menu {
                                     Button(role: .destructive) {
@@ -112,6 +123,8 @@ struct MyAIView: View {
                                         .background(.ultraThinMaterial, in: Circle())
                                         .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                                 }
+                                
+                                Spacer()
                             }
                             .padding()
                             Spacer()
@@ -157,6 +170,16 @@ struct MyAIView: View {
         guard !active.isEmpty else { return EditView.defaultAuraColor }
         let leastIntenseEmotion = active.sorted { $0.value > $1.value }.last!
         return EditView.emotionColorMapping[leastIntenseEmotion.key] ?? EditView.defaultAuraColor
+    }
+}
+
+extension View {
+    @ViewBuilder func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
     }
 }
 
