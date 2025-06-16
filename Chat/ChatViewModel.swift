@@ -275,6 +275,8 @@ class ChatViewModel: ObservableObject {
                     self.latestEmotions = nil
                     self.currentMessage = ""
                     self.emotionDisplayContent = nil
+                    // Clear selected persona so it will be reselected after personas reload
+                    self.selectedPersonaId = nil
                     
                     print("[ChatViewModel] Reset successful - cleared local state")
                     
@@ -522,6 +524,10 @@ class ChatViewModel: ObservableObject {
                 let sorted = personas.sorted(by: ChatViewModel.sortByRecent)
                 withAnimation {
                     self.personas = sorted
+                }
+                // Auto-select the most recently used persona if none is currently selected
+                if self.selectedPersonaId == nil, let first = sorted.first {
+                    self.selectedPersonaId = first.id
                 }
             }
             .store(in: &cancellables)
