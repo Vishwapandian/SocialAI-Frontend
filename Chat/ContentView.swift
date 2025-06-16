@@ -8,7 +8,7 @@ struct ContentView: View {
     // Temporary horizontal drag offset during an in-progress gesture.
     @State private var dragOffset: CGFloat = 0
     // How far the chat should slide to reveal the underlying view (as a fraction of the screen).
-    private let revealRatio: CGFloat = 0.95
+    private let revealRatio: CGFloat = 1
 
     @EnvironmentObject private var auth: AuthViewModel
 

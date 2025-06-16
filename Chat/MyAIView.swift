@@ -13,6 +13,18 @@ struct MyAIView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
+                // MARK: - Background Gradient
+                
+                /*
+                RadialGradient(
+                            // 1. Define the colors for the gradient
+                    gradient: Gradient(colors: [Color.gray.opacity(0.25), .clear]),
+                    center: .trailing,
+                    startRadius: 50,
+                    endRadius: 500
+                        )
+                .ignoresSafeArea()
+                */
 
                 HStack(spacing: 0) {
                     // MARK: - Main Content (80% width)

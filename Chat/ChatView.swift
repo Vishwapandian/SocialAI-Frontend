@@ -111,15 +111,18 @@ struct ChatView: View {
 
     // Extracted aura background view
     private var auraBackground: some View {
-        RadialGradient(
-            gradient: Gradient(stops: gradientStops),
-            center: .center,
-            startRadius: 50,
-            endRadius: 500
-        )
-        .blur(radius: 60)
-        .animation(.easeInOut(duration: 5), value: animateGradient)
-        .ignoresSafeArea()
+        RoundedRectangle(cornerRadius: 100, style: .continuous)
+            .fill(
+                RadialGradient(
+                    gradient: Gradient(stops: gradientStops),
+                    center: .center,
+                    startRadius: 50,
+                    endRadius: 500
+                )
+            )
+            .blur(radius: 60)
+            .animation(.easeInOut(duration: 5), value: animateGradient)
+            .ignoresSafeArea()
     }
 
     // Extracted chat list view
