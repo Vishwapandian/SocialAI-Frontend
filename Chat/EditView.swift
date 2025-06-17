@@ -35,8 +35,10 @@ struct EditView: View {
     static let defaultAuraColor: Color = Color.clear
     
     var body: some View {
-        ScrollView {
-                VStack(spacing: 24) {// Emotions Configuration Section with Aura Preview
+        ZStack {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Emotions Configuration Section with Aura Preview
                     
                     AuraPreviewView(emotions: previewEmotions)
                         .animation(.easeInOut(duration: 3), value: animateGradient)
@@ -67,32 +69,9 @@ struct EditView: View {
                     // Custom Instructions Configuration Section
                     CustomInstructionsConfigSection(viewModel: viewModel, editedCustomInstructions: $editedCustomInstructions)
                     
-                    // Select/Delete Buttons if editing a persona
-                    if let persona = persona {
-                        HStack {
-                            Button(role: .destructive) {
-                                viewModel.deletePersona(personaId: persona.id ?? "") {
-                                    dismiss()
-                                }
-                            } label: {
-                                HStack {
-                                    Image(systemName: "trash")
-                                    Text("Delete")
-                                }
-                            }
-                            Spacer()
-                            Button {
-                                // Apply persona to user
-                                viewModel.applyPersona(persona)
-                                dismiss()
-                            } label: {
-                                HStack {
-                                    Image(systemName: "checkmark.circle")
-                                    Text("Select")
-                                }
-                            }
-                        }
-                    }
+                    // Extra space for floating button
+                    Spacer()
+                        .frame(height: 40)
                 }
                 .padding()
             }
@@ -101,71 +80,128 @@ struct EditView: View {
                     ? Color(red: 240/255, green: 240/255, blue: 240/255)
                     : Color.clear
             )
-            .onTapGesture {
-                dismissKeyboard()
-            }
-            .onAppear {
-                if persona == nil {
-                    viewModel.loadConfiguration()
-                }
-                initializeEditingStates()
-                triggerInitialSliderAnimation()
-            }
-            .onDisappear {
-                saveAllChanges()
-            }
-            .onChange(of: editedBaseEmotions) { newEmotions in
-                if persona != nil {
-                    // Auto-save to persona
-                    guard var updatedPersona = self.persona else { return }
-                    updatedPersona.baseEmotions = normalizeEmotions(from: newEmotions)
-                    viewModel.updatePersona(updatedPersona)
-                }
-            }
-            .onChange(of: viewModel.sensitivity) { newSensitivity in
-                if persona == nil {
-                    if editedSensitivity == 0 {
-                        editedSensitivity = Double(newSensitivity)
+            
+            // MARK: - Floating Buttons
+            if let persona = persona {
+                VStack {
+                    // Delete button in top left (only show if not already selected)
+                    if viewModel.selectedPersonaId != persona.id {
+                        HStack {
+                            Button(role: .destructive) {
+                                viewModel.deletePersona(personaId: persona.id ?? "") {
+                                    dismiss()
+                                }
+                            } label: {
+                                Image(systemName: "trash.fill")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .frame(width: 30, height: 30)
+                                    .background(.ultraThinMaterial, in: Circle())
+                                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
+                            }
+                            .padding()
+                            //.padding(.leading, 16)
+                            //.padding(.top, 16)
+                            
+                            Spacer()
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    // Select button in bottom middle (only show if not already selected)
+                    if viewModel.selectedPersonaId != persona.id {
+                        HStack {
+                            Spacer()
+                            
+                            Button {
+                                // Apply persona to user
+                                viewModel.applyPersona(persona)
+                                dismiss()
+                            } label: {
+                                HStack {
+                                    
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 16, weight: .bold))
+                                    
+                                    Text("Select")
+                                        .font(.system(size: 20))
+                                }
+                                .padding() // Add this line
+                                .background(.ultraThinMaterial, in: Capsule())
+                                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
+                            }
+                            
+                            Spacer()
+                        }
                     }
                 }
             }
-            .onChange(of: editedSensitivity) { newValue in
-                if self.persona != nil {
-                    guard var updatedPersona = self.persona else { return }
-                    updatedPersona.sensitivity = Int(newValue)
-                    viewModel.updatePersona(updatedPersona)
+        }
+        .onTapGesture {
+            dismissKeyboard()
+        }
+        .onAppear {
+            if persona == nil {
+                viewModel.loadConfiguration()
+            }
+            initializeEditingStates()
+            triggerInitialSliderAnimation()
+        }
+        .onDisappear {
+            saveAllChanges()
+        }
+        .onChange(of: editedBaseEmotions) { newEmotions in
+            if persona != nil {
+                // Auto-save to persona
+                guard var updatedPersona = self.persona else { return }
+                updatedPersona.baseEmotions = normalizeEmotions(from: newEmotions)
+                viewModel.updatePersona(updatedPersona)
+            }
+        }
+        .onChange(of: viewModel.sensitivity) { newSensitivity in
+            if persona == nil {
+                if editedSensitivity == 0 {
+                    editedSensitivity = Double(newSensitivity)
                 }
             }
-            .onChange(of: editedCustomInstructions) { newValue in
-                if self.persona != nil {
-                    guard var updatedPersona = self.persona else { return }
-                    updatedPersona.customInstructions = newValue
-                    viewModel.updatePersona(updatedPersona)
+        }
+        .onChange(of: editedSensitivity) { newValue in
+            if self.persona != nil {
+                guard var updatedPersona = self.persona else { return }
+                updatedPersona.sensitivity = Int(newValue)
+                viewModel.updatePersona(updatedPersona)
+            }
+        }
+        .onChange(of: editedCustomInstructions) { newValue in
+            if self.persona != nil {
+                guard var updatedPersona = self.persona else { return }
+                updatedPersona.customInstructions = newValue
+                viewModel.updatePersona(updatedPersona)
+            }
+        }
+        .onChange(of: editedName) { newValue in
+            if self.persona != nil {
+                guard var updatedPersona = self.persona else { return }
+                updatedPersona.name = newValue
+                viewModel.updatePersona(updatedPersona)
+            }
+        }
+        .onChange(of: viewModel.baseEmotions) { newEmotions in
+            if persona == nil {
+                if editedBaseEmotions.isEmpty {
+                    editedBaseEmotions = newEmotions
+                    self.previewEmotions = newEmotions
+                    animateGradient.toggle()
                 }
             }
-            .onChange(of: editedName) { newValue in
-                if self.persona != nil {
-                    guard var updatedPersona = self.persona else { return }
-                    updatedPersona.name = newValue
-                    viewModel.updatePersona(updatedPersona)
+        }
+        .onChange(of: viewModel.customInstructions) { newInstructions in
+            if persona == nil {
+                if editedCustomInstructions.isEmpty {
+                    editedCustomInstructions = newInstructions
                 }
             }
-            .onChange(of: viewModel.baseEmotions) { newEmotions in
-                if persona == nil {
-                    if editedBaseEmotions.isEmpty {
-                        editedBaseEmotions = newEmotions
-                        self.previewEmotions = newEmotions
-                        animateGradient.toggle()
-                    }
-                }
-            }
-            .onChange(of: viewModel.customInstructions) { newInstructions in
-                if persona == nil {
-                    if editedCustomInstructions.isEmpty {
-                        editedCustomInstructions = newInstructions
-                    }
-                }
-            }
+        }
     }
     
     private func dismissKeyboard() {
