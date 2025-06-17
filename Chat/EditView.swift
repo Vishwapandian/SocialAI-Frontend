@@ -4,6 +4,7 @@ struct EditView: View {
     @EnvironmentObject var auth: AuthViewModel
     @ObservedObject var viewModel: ChatViewModel
     var persona: SocialAIService.Persona? = nil // nil means editing user config
+    var name: String = "Aura" // Default name for user config
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -16,6 +17,7 @@ struct EditView: View {
     @State private var editedBaseEmotions: [String: Int] = [:]
     @State private var editedSensitivity: Double = 0
     @State private var editedCustomInstructions: String = "" // Editable field for future use
+    @State private var editedName: String = "" // Editable name field
     
 
     
@@ -34,23 +36,26 @@ struct EditView: View {
     
     var body: some View {
         ScrollView {
-                VStack(spacing: 24) {
-                    // Emotions Configuration Section with Aura Preview
-                    VStack(spacing: 16) {
-                        
-                        // Small Aura Preview
-                        AuraPreviewView(emotions: previewEmotions)
-                            .animation(.easeInOut(duration: 3), value: animateGradient)
-                        
-                        EmotionsConfigSection(
-                            viewModel: viewModel,
-                            editedBaseEmotions: $editedBaseEmotions,
-                            onEmotionsChange: { newEmotions in
-                                self.previewEmotions = newEmotions
-                                animateGradient.toggle()
-                            }
-                        )
+                VStack(spacing: 24) {// Emotions Configuration Section with Aura Preview
+                    
+                    AuraPreviewView(emotions: previewEmotions)
+                        .animation(.easeInOut(duration: 3), value: animateGradient)
+                    
+                    // Name Configuration Section (only show for personas)
+                    if persona != nil {
+                        NameConfigSection(editedName: $editedName)
                     }
+                    
+                    Divider()
+                    
+                    EmotionsConfigSection(
+                        viewModel: viewModel,
+                        editedBaseEmotions: $editedBaseEmotions,
+                        onEmotionsChange: { newEmotions in
+                            self.previewEmotions = newEmotions
+                            animateGradient.toggle()
+                        }
+                    )
                     
                     Divider()
                     
@@ -138,6 +143,13 @@ struct EditView: View {
                     viewModel.updatePersona(updatedPersona)
                 }
             }
+            .onChange(of: editedName) { newValue in
+                if self.persona != nil {
+                    guard var updatedPersona = self.persona else { return }
+                    updatedPersona.name = newValue
+                    viewModel.updatePersona(updatedPersona)
+                }
+            }
             .onChange(of: viewModel.baseEmotions) { newEmotions in
                 if persona == nil {
                     if editedBaseEmotions.isEmpty {
@@ -165,11 +177,13 @@ struct EditView: View {
             editedBaseEmotions = persona.baseEmotions
             editedSensitivity = Double(persona.sensitivity)
             editedCustomInstructions = persona.customInstructions
+            editedName = persona.name
             previewEmotions = persona.baseEmotions
         } else {
             editedBaseEmotions = viewModel.baseEmotions
             editedSensitivity = Double(viewModel.sensitivity)
             editedCustomInstructions = viewModel.customInstructions
+            editedName = name
             previewEmotions = viewModel.baseEmotions
         }
         animateGradient.toggle()
@@ -181,6 +195,7 @@ struct EditView: View {
             personaToSave.baseEmotions = normalizeEmotions(from: editedBaseEmotions)
             personaToSave.sensitivity = Int(editedSensitivity)
             personaToSave.customInstructions = editedCustomInstructions
+            personaToSave.name = editedName
             viewModel.updatePersona(personaToSave)
         } else {
             // Editing live config – previous behaviour
@@ -489,6 +504,26 @@ struct CustomInstructionsConfigSection: View {
     }
 }
 
+// MARK: - Name Configuration Section
+struct NameConfigSection: View {
+    @Binding var editedName: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Name")
+                .font(.headline)
+            
+            TextField("Enter name", text: $editedName)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial)
+                .cornerRadius(16)
+                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
+                .font(.body)
+        }
+    }
+}
+
 // MARK: - Emotions Configuration Section
 struct EmotionsConfigSection: View {
     @ObservedObject var viewModel: ChatViewModel
@@ -551,24 +586,38 @@ struct EmotionsConfigSection: View {
 }
 
 #Preview {
-    EditView(viewModel: {
-        let mockViewModel = ChatViewModel()
-        
-        // Set up mock data for preview
-        mockViewModel.baseEmotions = [
-            "Red": 5,
-            "Yellow": 20,
-            "Green": 30,
-            "Blue": 40,
-            "Purple": 5
-        ]
-        
-        // Custom instructions are editable but show placeholder content
-        
-        mockViewModel.sensitivity = 65
-        
-        return mockViewModel
-    }())
+    EditView(
+        viewModel: {
+            let mockViewModel = ChatViewModel()
+            
+            // Set up mock data for preview
+            mockViewModel.baseEmotions = [
+                "Red": 5,
+                "Yellow": 20,
+                "Green": 30,
+                "Blue": 40,
+                "Purple": 5
+            ]
+            
+            mockViewModel.sensitivity = 65
+            
+            return mockViewModel
+        }(),
+        persona: SocialAIService.Persona(
+            id: "mock-persona-id",
+            name: "Energetic Friend",
+            baseEmotions: [
+                "Red": 10,
+                "Yellow": 35,
+                "Green": 25,
+                "Blue": 15,
+                "Purple": 15
+            ],
+            sensitivity: 75,
+            customInstructions: "Be upbeat, encouraging, and always ready to help with enthusiasm!"
+        ),
+        name: "Energetic Friend"
+    )
     .environmentObject({
         let mockAuth = AuthViewModel()
         return mockAuth
