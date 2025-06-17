@@ -563,8 +563,15 @@ class ChatViewModel: ObservableObject {
                 }
             } receiveValue: { [weak self] updated in
                 guard let self = self else { return }
-                if let idx = self.personas.firstIndex(where: { $0.id == updated.id }) {
-                    self.personas[idx] = updated
+                var updatedPersona = updated
+                // Ensure the newly applied persona is considered most recently used locally,
+                // even if the backend does not return an updated `lastUsed` value.
+                if updatedPersona.id == self.selectedPersonaId {
+                    updatedPersona.lastUsed = ISO8601DateFormatter().string(from: Date())
+                }
+                
+                if let idx = self.personas.firstIndex(where: { $0.id == updatedPersona.id }) {
+                    self.personas[idx] = updatedPersona
                 }
                 // Resort list to ensure most recently used stays on top
                 withAnimation {
