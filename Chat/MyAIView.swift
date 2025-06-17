@@ -110,6 +110,16 @@ struct MyAIView: View {
                             .animation(.easeInOut, value: viewModel.personas)
                         }
                         .scrollIndicators(.hidden)
+                        .mask(
+                            LinearGradient(
+                                gradient: Gradient(stops: [
+                                    .init(color: .clear, location: 0),
+                                    .init(color: .black, location: 0.1)
+                                ]),
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
                         
                         // MARK: - Overlay Buttons
                         VStack {
