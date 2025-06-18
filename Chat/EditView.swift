@@ -13,6 +13,9 @@ struct EditView: View {
     @State private var previewEmotions: [String: Int] = [:]
     @State private var animateGradient = false
     
+    // NEW: Track if this persona was deleted during this editing session
+    @State private var wasDeleted: Bool = false
+    
     // State variables for editing (always in edit mode now)
     @State private var editedBaseEmotions: [String: Int] = [:]
     @State private var editedSensitivity: Double = 0
@@ -88,6 +91,8 @@ struct EditView: View {
                     if viewModel.selectedPersonaId != persona.id {
                         HStack {
                             Button(role: .destructive) {
+                                // NEW: Mark this persona as deleted so we don't re-create it in onDisappear
+                                wasDeleted = true
                                 viewModel.deletePersona(personaId: persona.id ?? "") {
                                     dismiss()
                                 }
@@ -148,7 +153,10 @@ struct EditView: View {
             triggerInitialSliderAnimation()
         }
         .onDisappear {
-            saveAllChanges()
+            // Skip saving if the persona was deleted in this session
+            if !wasDeleted {
+                saveAllChanges()
+            }
         }
         .onChange(of: editedBaseEmotions) { newEmotions in
             if persona != nil {
