@@ -9,10 +9,6 @@ struct EditView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     
-    // State variables for the aura
-    @State private var previewEmotions: [String: Int] = [:]
-    @State private var animateGradient = false
-    
     // NEW: Track if this persona was deleted during this editing session
     @State private var wasDeleted: Bool = false
     
@@ -22,30 +18,13 @@ struct EditView: View {
     @State private var editedCustomInstructions: String = "" // Editable field for future use
     @State private var editedName: String = "" // Editable name field
     
-
-    
     // State used to drive the first-open "rubber-band" slider animation
     @State private var hasRunInitialSliderAnimation: Bool = false
-    
-    // Emotion to Color Mapping and default color (same as ChatView)
-    static let emotionColorMapping: [String: Color] = [
-        "Yellow": .yellow,
-        "Blue": .blue,
-        "Red": .red,
-        "Purple": .purple,
-        "Green": .green
-    ]
-    static let defaultAuraColor: Color = Color.clear
     
     var body: some View {
         ZStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Emotions Configuration Section with Aura Preview
-                    
-                    AuraPreviewView(emotions: previewEmotions)
-                        .animation(.easeInOut(duration: 3), value: animateGradient)
-                    
                     // Name Configuration Section (only show for personas)
                     if persona != nil {
                         NameConfigSection(editedName: $editedName)
@@ -55,11 +34,7 @@ struct EditView: View {
                     
                     EmotionsConfigSection(
                         viewModel: viewModel,
-                        editedBaseEmotions: $editedBaseEmotions,
-                        onEmotionsChange: { newEmotions in
-                            self.previewEmotions = newEmotions
-                            animateGradient.toggle()
-                        }
+                        editedBaseEmotions: $editedBaseEmotions
                     )
                     
                     Divider()
@@ -199,8 +174,6 @@ struct EditView: View {
             if persona == nil {
                 if editedBaseEmotions.isEmpty {
                     editedBaseEmotions = newEmotions
-                    self.previewEmotions = newEmotions
-                    animateGradient.toggle()
                 }
             }
         }
@@ -223,15 +196,12 @@ struct EditView: View {
             editedSensitivity = Double(persona.sensitivity)
             editedCustomInstructions = persona.customInstructions
             editedName = persona.name
-            previewEmotions = persona.baseEmotions
         } else {
             editedBaseEmotions = viewModel.baseEmotions
             editedSensitivity = Double(viewModel.sensitivity)
             editedCustomInstructions = viewModel.customInstructions
             editedName = name
-            previewEmotions = viewModel.baseEmotions
         }
-        animateGradient.toggle()
     }
     
     private func saveAllChanges() {
@@ -295,7 +265,6 @@ struct EditView: View {
         // Start everything at zero
         editedBaseEmotions = Dictionary(uniqueKeysWithValues: targetEmotions.map { ($0.key, 0) })
         editedSensitivity = 0
-        previewEmotions = editedBaseEmotions
         
         // A noticeably slow, overshooting spring (~5 s). Adjust speed/params to fine-tune feel.
         let longSpring = Animation
@@ -307,159 +276,8 @@ struct EditView: View {
             withAnimation(longSpring) {
                 editedBaseEmotions = targetEmotions
                 editedSensitivity = targetSensitivity
-                previewEmotions = targetEmotions
-                animateGradient.toggle()
             }
         }
-    }
-}
-
-// MARK: - Aura Preview
-struct AuraPreviewView: View {
-    let emotions: [String: Int]
-    /// Desired square view dimension (both width and height). Defaults to the previous 200 × 200.
-    var size: CGFloat = 200
-    
-    private let emotionColorMapping = EditView.emotionColorMapping
-    private let defaultAuraColor = EditView.defaultAuraColor
-
-    // Derived drawing metrics so that the view scales nicely down to small sizes.
-    private var endRadius: CGFloat { size * 0.375 }   // 75 when `size` = 200  ▸ maintains previous ratio
-    private var blurRadius: CGFloat { size * 0.075 }  // 15 when `size` = 200
-
-    var body: some View {
-        RadialGradient(
-            gradient: createAuraGradient(),
-            center: .center,
-            startRadius: 0,
-            endRadius: endRadius
-        )
-        .compositingGroup()
-        .blur(radius: blurRadius)
-        .frame(width: size, height: size)
-    }
-
-    private func createAuraGradient() -> Gradient {
-        let activeSortedEmotions = emotions
-            .filter { $0.value > 0 }
-            .sorted { $0.value > $1.value }
-
-        if activeSortedEmotions.isEmpty {
-            return Gradient(stops: [
-                .init(color: defaultAuraColor, location: 0.0),
-                .init(color: .clear, location: 1.0)
-            ])
-        }
-        
-        if activeSortedEmotions.count == 1, let emotion = activeSortedEmotions.first {
-            let color = emotionColorMapping[emotion.key] ?? defaultAuraColor
-            return Gradient(stops: [
-                .init(color: color, location: 0.0),
-                .init(color: color, location: 0.4),
-                .init(color: .clear, location: 1.0)
-            ])
-        }
-
-        let totalIntensity = CGFloat(activeSortedEmotions.reduce(0) { $0 + $1.value })
-        guard totalIntensity > 0 else {
-            return Gradient(stops: [
-                .init(color: defaultAuraColor, location: 0.0),
-                .init(color: .clear, location: 1.0)
-            ])
-        }
-
-        let coloredPortion: CGFloat = 0.7
-        var stops: [Gradient.Stop] = []
-        var cumulativeProportion: CGFloat = 0.0
-
-        for i in 0..<activeSortedEmotions.count {
-            let emotionEntry = activeSortedEmotions[i]
-            let color = emotionColorMapping[emotionEntry.key] ?? defaultAuraColor
-            
-            if i == 0 {
-                stops.append(Gradient.Stop(color: color, location: 0.0))
-            }
-            
-            let intensity = CGFloat(emotionEntry.value)
-            cumulativeProportion += intensity / totalIntensity
-            let location = cumulativeProportion * coloredPortion
-            
-            stops.append(Gradient.Stop(color: color, location: min(location, coloredPortion)))
-        }
-        
-        // Add a smoother, hue-preserving fade-out instead of jumping to transparent black
-        if let lastStop = stops.last {
-            stops.append(.init(color: lastStop.color.opacity(0.4), location: 0.85))
-            stops.append(.init(color: lastStop.color.opacity(0.0), location: 1.0))
-        } else {
-            stops.append(.init(color: .clear, location: 1.0))
-        }
-        
-        // Cleanup duplicate stops to ensure a smooth gradient
-        if stops.count > 1 {
-            var uniqueStops: [Gradient.Stop] = [stops[0]]
-            for j in 1..<stops.count {
-                if !(uniqueStops.last!.color == stops[j].color && uniqueStops.last!.location == stops[j].location) {
-                    uniqueStops.append(stops[j])
-                }
-            }
-            stops = uniqueStops
-        }
-
-        return Gradient(stops: stops)
-    }
-}
-
-// MARK: - Gray Aura Preview
-struct GrayAuraView: View {
-    var size: CGFloat = 200
-
-    private var endRadius: CGFloat { size * 0.375 }
-    private var blurRadius: CGFloat { size * 0.075 }
-
-    var body: some View {
-        RadialGradient(
-            gradient: Gradient(stops: [
-                .init(color: .gray, location: 0.0),
-                .init(color: .gray, location: 0.4),
-                .init(color: .clear, location: 1.0)
-            ]),
-            center: .center,
-            startRadius: 0,
-            endRadius: endRadius
-        )
-        .compositingGroup()
-        .blur(radius: blurRadius)
-        .frame(width: size, height: size)
-    }
-}
-
-
-// MARK: - Individual Emotion Aura
-struct EmotionAuraView: View {
-    let emotion: String
-    
-    private let emotionColorMapping = EditView.emotionColorMapping
-    private let defaultAuraColor = EditView.defaultAuraColor
-    
-    var body: some View {
-        let color = emotionColorMapping[emotion] ?? defaultAuraColor
-        
-        Circle()
-            .fill(
-                RadialGradient(
-                    gradient: Gradient(stops: [
-                        .init(color: color, location: 0.0),
-                        .init(color: color.opacity(0.8), location: 0.4),
-                        .init(color: color.opacity(0.2), location: 0.8),
-                        .init(color: .clear, location: 1.0)
-                    ]),
-                    center: .center,
-                    startRadius: 0,
-                    endRadius: 20
-                )
-            )
-            .blur(radius: 8)
     }
 }
 
@@ -573,7 +391,6 @@ struct NameConfigSection: View {
 struct EmotionsConfigSection: View {
     @ObservedObject var viewModel: ChatViewModel
     @Binding var editedBaseEmotions: [String: Int]
-    let onEmotionsChange: ([String: Int]) -> Void
     
     private let emotionOrder = ["Red", "Yellow", "Green", "Blue", "Purple"]
     
@@ -591,16 +408,15 @@ struct EmotionsConfigSection: View {
             
             ForEach(emotionOrder, id: \.self) { emotion in
                 HStack {
-                    // Small emotion aura preview
-                    EmotionAuraView(emotion: emotion)
-                        .frame(width: 40, height: 40)
+                    Text(emotion)
+                        .font(.caption)
+                        .frame(width: 50, alignment: .leading)
                     
                     Slider(
                         value: Binding(
                             get: { Double(editedBaseEmotions[emotion] ?? 0) },
                             set: { newValue in
                                 editedBaseEmotions[emotion] = Int(newValue)
-                                onEmotionsChange(editedBaseEmotions)
                             }
                         ),
                         in: 0...100,

@@ -14,7 +14,6 @@ class ChatViewModel: ObservableObject {
     @Published var currentMessage: String = ""
     @Published var error: String? = nil
     @Published var latestEmotions: [String: Int]? = nil // To store the latest emotions
-    @Published var emotionDisplayContent: String? = nil // For the alert
     @Published var messages: [Message] = []
     @Published var isAITyping: Bool = false // To show typing indicator
     
@@ -274,7 +273,6 @@ class ChatViewModel: ObservableObject {
                     self.messages = []
                     self.latestEmotions = nil
                     self.currentMessage = ""
-                    self.emotionDisplayContent = nil
                     // Clear selected persona so it will be reselected after personas reload
                     self.selectedPersonaId = nil
                     

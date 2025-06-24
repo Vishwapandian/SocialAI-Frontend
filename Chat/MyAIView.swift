@@ -38,8 +38,11 @@ struct MyAIView: View {
                                     }
                                 } label: {
                                     HStack {
-                                        GrayAuraView(size: 80)
-                                        
+                                        Image(systemName: "person.crop.circle.fill")
+                                            .font(.system(size: 60))
+                                            .foregroundColor(.secondary)
+                                            .frame(width: 80, height: 80)
+
                                         VStack(alignment: .leading) {
                                             Text("Create New")
                                                 .font(.headline)
@@ -50,13 +53,6 @@ struct MyAIView: View {
                                         Spacer()
                                     }
                                     .padding()
-                                    /*
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                            .fill(.ultraThinMaterial)
-                                    )
-                                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
-                                    */
                                 }
                                 .buttonStyle(PlainButtonStyle())
                                 ForEach(viewModel.personas, id: \.id) { persona in
@@ -65,11 +61,11 @@ struct MyAIView: View {
                                         showingEditView = true
                                     } label: {
                                         HStack {
-                                            AuraPreviewView(
-                                                emotions: persona.baseEmotions,
-                                                size: 80
-                                            )
-                                            .padding(.trailing, 8)
+                                            Image(systemName: "person.crop.circle.fill")
+                                                .font(.system(size: 60))
+                                                .foregroundColor(.primary)
+                                                .frame(width: 80, height: 80)
+                                                .padding(.trailing, 8)
                                             
                                             VStack(alignment: .leading) {
                                                 Text(persona.name)
@@ -86,10 +82,6 @@ struct MyAIView: View {
                                                 .background(
                                                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                                                         .fill(.ultraThinMaterial)
-                                                )
-                                                .background(
-                                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                                        .fill(outermostAuraColor(for: persona.baseEmotions).opacity(0.05))
                                                 )
                                                 .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 0)
                                         }
@@ -187,13 +179,6 @@ struct MyAIView: View {
         } message: {
             Text("This will permanently delete all of Auri's memories and reset emotions to default values. This action cannot be undone.")
         }
-    }
-    
-    private func outermostAuraColor(for emotions: [String: Int]) -> Color {
-        let active = emotions.filter { $0.value > 0 }
-        guard !active.isEmpty else { return EditView.defaultAuraColor }
-        let leastIntenseEmotion = active.sorted { $0.value > $1.value }.last!
-        return EditView.emotionColorMapping[leastIntenseEmotion.key] ?? EditView.defaultAuraColor
     }
 }
 
